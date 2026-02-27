@@ -34,7 +34,7 @@ These are deliberately chosen to be approachable without deep kernel knowledge.
 ## Development Setup
 
 ```bash
-git clone https://github.com/yourusername/aethercore
+git clone https://github.com/fzihak/aethercore
 cd aethercore
 make setup      # install dev tools
 make build      # build all targets
