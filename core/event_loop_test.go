@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -56,4 +57,44 @@ func TestEventLoopWorkerLimits(t *testing.T) {
 	}
 
 	engine.Stop()
+}
+
+func TestEventLoopGoroutineLeak(t *testing.T) {
+	// Baseline
+	initialGoroutines := runtime.NumGoroutine()
+
+	adapter := &MockLLMAdapter{}
+	engine := NewEngine(adapter, 10, 1000)
+
+	engine.Start()
+
+	// Flood the worker pool
+	const taskCount = 100
+	for i := 0; i < taskCount; i++ {
+		err := engine.Submit(Task{
+			ID:        "leak_test",
+			System:    "Sys",
+			Input:     "Input",
+			CreatedAt: time.Now(),
+		})
+		if err != nil {
+			t.Fatalf("Failed to submit task: %v", err)
+		}
+	}
+
+	// Drain results
+	for i := 0; i < taskCount; i++ {
+		<-engine.Results()
+	}
+
+	engine.Stop()
+
+	// Give the runtime a tiny buffer to sweep dead goroutines before failing
+	time.Sleep(10 * time.Millisecond)
+
+	finalGoroutines := runtime.NumGoroutine()
+
+	if finalGoroutines > initialGoroutines {
+		t.Fatalf("Goroutine leak detected! Initial: %d, Final: %d", initialGoroutines, finalGoroutines)
+	}
 }
