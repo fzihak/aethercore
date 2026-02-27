@@ -70,8 +70,13 @@ func (e *Engine) Start() {
 
 // Stop gracefully shuts down the worker pool.
 func (e *Engine) Stop() {
+	// Signal all workers to terminate their loops
 	close(e.quit)
+	
+	// Strictly block until every single ephemeral worker has returned
 	e.wg.Wait()
+	
+	// Only after all workers are dead is it safe to close the queues
 	close(e.taskQueue)
 	close(e.resultQueue)
 }
