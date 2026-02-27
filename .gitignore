@@ -1,8 +1,8 @@
 # .gitignore
 
 # Binaries
-aether
-aether.exe
+/aether
+/aether.exe
 
 # Go modules
 vendor/
