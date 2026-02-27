@@ -29,7 +29,10 @@ func authCmd(mode string) {
 	// Setup a local redirect server to receive the JWT from the cloud auth provider
 	// Clerk.dev will redirect to localhost:9092/callback?token=xxx
 	tokenChan := make(chan string)
-	srv := &http.Server{Addr: ":9092"}
+	srv := &http.Server{
+		Addr:              ":9092",
+		ReadHeaderTimeout: 3 * time.Second,
+	}
 
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		token := r.URL.Query().Get("token")
@@ -50,7 +53,9 @@ func authCmd(mode string) {
 
 	// Open the browser
 	stateBytes := make([]byte, 16)
-	rand.Read(stateBytes)
+	if _, err := rand.Read(stateBytes); err != nil {
+		log.Fatalf("Failed to generate random state: %v", err)
+	}
 	state := base64.URLEncoding.EncodeToString(stateBytes)
 
 	// aethercore.dev is the placeholder cloud auth domain
@@ -75,17 +80,20 @@ func authCmd(mode string) {
 	}
 
 	// Shutdown the server cleanly
-	srv.Shutdown(context.Background())
+	_ = srv.Shutdown(context.Background())
 }
 
 func openBrowser(url string) {
 	var err error
 	switch runtime.GOOS {
 	case "linux":
+		/* #nosec G204 */
 		err = exec.Command("xdg-open", url).Start()
 	case "windows":
+		/* #nosec G204 */
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	case "darwin":
+		/* #nosec G204 */
 		err = exec.Command("open", url).Start()
 	default:
 		err = fmt.Errorf("unsupported platform")
@@ -124,7 +132,7 @@ func deleteCmd() {
 
 	if resp.StatusCode == http.StatusOK {
 		// Delete local token too
-		store.Delete()
+		_ = store.Delete()
 		fmt.Println("Account deleted successfully. Local token removed.")
 	} else {
 		fmt.Printf("Failed to delete account. Status: %d\n", resp.StatusCode)

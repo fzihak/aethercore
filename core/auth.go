@@ -66,6 +66,7 @@ func (s *TokenStore) Save(token string) error {
 
 func (s *TokenStore) Load() (string, error) {
 	path := filepath.Join(s.ConfigDir, tokenFileName)
+	// #nosec G304 -- Path is constructed securely from the OS config directory.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
