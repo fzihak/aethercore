@@ -13,6 +13,14 @@ import (
 const version = "0.1.0"
 
 func main() {
+	// 1. Initialize nanosecond precision telemetry before any allocations
+	core.InitTelemetry()
+
+	// 2. Guarantee telemetry is written to stdout on termination
+	defer func() {
+		fmt.Printf("\n[AetherCore] Boot Latency: %s\n", core.FormatBootLatency())
+	}()
+
 	kernelMode := flag.Bool("kernel", false, "Start in Kernel Mode (enables distributed mesh and Rust sandbox)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "AetherCore v%s - The Minimal Agent Kernel\n\n", version)
