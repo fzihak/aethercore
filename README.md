@@ -27,9 +27,7 @@
 
 ### 🚀 V1.0 Launch Progress (Real-Time)
 
-<a href="https://github.com/fzihak/aethercore/blob/main/V1_LAUNCH_PLAN.md">
-  <img src="https://progress-bar.dev/16/?title=Kernel%20Completion&(Day%205/30)" alt="Progress">
-</a>
+![Progress](https://img.shields.io/badge/Kernel_Completion-Day_5%2F30-00ADD8)
 
 | Milestone                                     | Status                   | ETA       |
 | :-------------------------------------------- | :----------------------- | :-------- |
@@ -37,8 +35,6 @@
 | **Week 2 (Days 8-14):** The Rust Shield       | 🔴 Untouched             | Pending   |
 | **Week 3 (Days 15-21):** Distributed Mesh     | 🔴 Untouched             | Pending   |
 | **Week 4 (Days 22-28):** Plugin Ecosystem     | 🔴 Untouched             | Pending   |
-
-_(See [V1_LAUNCH_PLAN.md](V1_LAUNCH_PLAN.md) for the exact daily trajectory.)_
 
 <!-- Add your terminal demo GIF here -->
 <!-- <img src="docs/assets/demo.gif" width="700"> -->
