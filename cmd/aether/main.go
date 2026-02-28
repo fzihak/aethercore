@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aethercore/aethercore/core"
+	"github.com/aethercore/aethercore/core/tools"
 )
 
 const version = "0.1.0"
@@ -36,6 +38,8 @@ func main() {
 
 	// Parse flags for run command
 	goal := flag.String("goal", "", "The goal for the ephemeral agent to accomplish")
+	targetTool := flag.String("tool", "", "Bypass LLM and execute a specific native tool directly")
+	toolArgs := flag.String("args", "{}", "JSON arguments to pass to the target tool")
 	flag.Parse()
 
 	args := flag.Args()
@@ -57,9 +61,19 @@ func main() {
 		} else {
 			fmt.Println("Usage: aether account delete")
 		}
+	case "tool":
+		if len(args) > 1 && args[1] == "list" {
+			listToolsCmd()
+		} else {
+			fmt.Println("Usage: aether tool list")
+		}
 	case "run":
+		if *targetTool != "" {
+			runToolNative(*targetTool, *toolArgs)
+			return
+		}
 		if *goal == "" {
-			fmt.Println("Error: --goal is required for 'run'")
+			fmt.Println("Error: --goal is required for 'run' if not specifying a --tool")
 			os.Exit(1)
 		}
 		runPicoMode(*goal, *kernelMode)
@@ -93,6 +107,8 @@ func runPicoMode(goal string, isKernel bool) {
 	start := time.Now()
 
 	engine := core.NewEngine(nil, 4, 100) // 4 bounded goroutines
+	engine.RegisterTool(&tools.SysInfoTool{})
+
 	engine.Start()
 
 	task := core.Task{
@@ -116,5 +132,51 @@ func runPicoMode(goal string, isKernel bool) {
 	} else {
 		// Mock output since there's no LLM yet
 		fmt.Println("Output: [Engine initialized and task dispatched successfully]")
+	}
+}
+
+// runToolNative bypasses the worker pool entirely to instantly execute a given tool for testing.
+func runToolNative(toolName, args string) {
+	fmt.Printf("AetherCore - Native Tool Execution: '%s'\n", toolName)
+	start := time.Now()
+
+	registry := core.NewToolRegistry()
+	registry.Register(&tools.SysInfoTool{})
+
+	tool, err := registry.Get(toolName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("[Latency %v] Executing...\n", time.Since(start))
+
+	out, err := tool.Execute(context.Background(), args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Tool execution failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n--- Tool Output ---\n%s\n-------------------\n", out)
+}
+
+func listToolsCmd() {
+	registry := core.NewToolRegistry()
+	registry.Register(&tools.SysInfoTool{})
+
+	fmt.Println("Available Native Tools:")
+	fmt.Println("---------------------------------------------------------")
+	fmt.Printf("%-15s | %-12s | %-15s | %s\n", "NAME", "CAPABILITIES", "LIMITS (ms/MB)", "DESCRIPTION")
+	fmt.Println("---------------------------------------------------------")
+
+	manifests := registry.Manifests()
+	for _, m := range manifests {
+		caps := ""
+		for _, c := range m.Capabilities {
+			caps += string(c) + " "
+		}
+
+		limits := fmt.Sprintf("%dms / %dMB", m.MaxRuntimeMs, m.MemoryLimit)
+		fmt.Printf("%-15s | %-12s | %-15s | %s\n", m.Name, caps, limits, m.Description)
 	}
 }
