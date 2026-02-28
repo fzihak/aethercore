@@ -34,6 +34,22 @@ jobs:
           mkdir -p dist
           go build -trimpath -ldflags="-s -w" -o dist/aether-${{ matrix.os }}-${{ matrix.arch }} ./cmd/aether/main.go || echo "No main.go yet"
 
+  benchmark:
+    name: Benchmark Metrics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+      - name: Run Allocations Benchmark
+        run: go test -v -bench=. -benchmem ./...
+      - name: Measure Binary Size
+        run: |
+          go build -trimpath -ldflags="-s -w" -o aether cmd/aether/main.go
+          ls -lh aether
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -47,6 +63,27 @@ jobs:
 
       - name: Test
         run: go test -v -race ./... || echo "No tests yet"
+
+  rust-build:
+    name: Rust Sandbox Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./runtime
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Cache Cargo Dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./runtime
+      - name: Cargo Clippy
+        run: cargo clippy -- -D warnings
+      - name: Cargo Build Release
+        run: cargo build --release
 
   lint:
     name: Lint
