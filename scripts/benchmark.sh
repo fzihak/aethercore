@@ -46,21 +46,24 @@ echo "[3/4] Measuring Boot Latency & Maximum Resident Set Size (RAM)..."
 # Note: GitHub Actions runners support this.
 
 if command -v /usr/bin/time &> /dev/null; then
-    # Capture standard error to intercept GNU time output, and standard output for the CLI
-    /usr/bin/time -v "$BIN_PATH" --help > cli_output.log 2> time_output.log
+    # GNU time maps its output to stderr. We pipe everything into combined.log
+    /usr/bin/time -v "$BIN_PATH" --help > combined.log 2>&1
     
     # Extract Maximum Resident Set Size (kbytes) from GNU time
-    MAX_RSS_KB=$(grep "Maximum resident set size" time_output.log | awk '{print $6}')
+    MAX_RSS_KB=$(grep "Maximum resident set size" combined.log | awk '{print $6}')
     MAX_RSS_MB=$(echo "scale=2; $MAX_RSS_KB / 1024" | bc)
     
     echo " -> Peak Memory Usage (Max RSS): ${MAX_RSS_MB} MB"
 else
     echo " -> Peak Memory Usage: Skipped (Requires /usr/bin/time on POSIX)"
-    "$BIN_PATH" --help > cli_output.log
+    "$BIN_PATH" --help > combined.log 2>&1
 fi
 
 # Extract the nanosecond latency we built into main.go in Day 1.
-LATENCY_STR=$(grep "Boot Latency:" cli_output.log | awk -F': ' '{print $2}')
+LATENCY_STR=$(grep "Boot Latency:" combined.log | awk -F': ' '{print $2}')
+if [ -z "$LATENCY_STR" ]; then
+    LATENCY_STR="<Unknown>"
+fi
 echo " -> Boot Latency: ${LATENCY_STR}"
 
 echo "[4/4] Cleaning up ephemeral test artifacts..."

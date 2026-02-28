@@ -18,7 +18,8 @@ func main() {
 
 	// 2. Guarantee telemetry is written to stdout on termination
 	defer func() {
-		fmt.Printf("\n[AetherCore] Boot Latency: %s\n", core.FormatBootLatency())
+		// Strictly use os.Stdout so CI scripts can reliably parse this regardless of flag.Usage() stderr
+		fmt.Fprintf(os.Stdout, "\n[AetherCore] Boot Latency: %s\n", core.FormatBootLatency())
 	}()
 
 	kernelMode := flag.Bool("kernel", false, "Start in Kernel Mode (enables distributed mesh and Rust sandbox)")
