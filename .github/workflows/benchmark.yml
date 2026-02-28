@@ -1,0 +1,29 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  benchmark:
+    name: Core Profiling
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Install GNU Time
+        run: sudo apt-get update && sudo apt-get install -y time bc
+
+      - name: Run Deterministic Profiler
+        run: |
+          chmod +x scripts/benchmark.sh
+          ./scripts/benchmark.sh
