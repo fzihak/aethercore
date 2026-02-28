@@ -25,7 +25,7 @@ func BenchmarkEventLoopAllocation(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		t := engine.GetTask()
 		t.ID = "bench_task"
 		t.System = "System"
@@ -37,7 +37,7 @@ func BenchmarkEventLoopAllocation(b *testing.B) {
 		}
 	}
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		res := <-engine.Results()
 		engine.RecycleResult(res)
 	}
@@ -61,7 +61,7 @@ func BenchmarkAdapterLatency(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		t := engine.GetTask()
 		t.ID = "bench_task"
 

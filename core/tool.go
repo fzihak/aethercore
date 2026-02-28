@@ -4,10 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 )
 
 // Inviolable Rule: Layer 0 strictly uses Go stdlib ONLY.
+
+var (
+	ErrNilTool        = errors.New("cannot register nil tool")
+	ErrToolRegistered = errors.New("tool already registered")
+	ErrToolNotFound   = errors.New("tool not found")
+)
 
 // Capability flags define what a tool is permitted to do.
 type Capability string
@@ -49,7 +56,7 @@ func NewToolRegistry() *ToolRegistry {
 
 func (r *ToolRegistry) Register(t Tool) error {
 	if t == nil {
-		return errors.New("cannot register nil tool")
+		return ErrNilTool
 	}
 
 	r.mu.Lock()
@@ -57,7 +64,7 @@ func (r *ToolRegistry) Register(t Tool) error {
 
 	m := t.Manifest()
 	if _, exists := r.tools[m.Name]; exists {
-		return errors.New("tool already registered: " + m.Name)
+		return fmt.Errorf("%w: %s", ErrToolRegistered, m.Name)
 	}
 	r.tools[m.Name] = t
 	return nil
@@ -69,7 +76,7 @@ func (r *ToolRegistry) Get(name string) (Tool, error) {
 
 	t, exists := r.tools[name]
 	if !exists {
-		return nil, errors.New("tool not found: " + name)
+		return nil, fmt.Errorf("%w: %s", ErrToolNotFound, name)
 	}
 	return t, nil
 }

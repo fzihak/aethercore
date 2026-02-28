@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-// MockLLMAdapter provides a dummy LLM for testing
+// MockLLMAdapter provides a dummy LLM for testing.
 type MockLLMAdapter struct{}
 
-func (m *MockLLMAdapter) Generate(ctx context.Context, systemPrompt, userInput string) (string, error) {
+func (m *MockLLMAdapter) Generate(_ context.Context, systemPrompt, userInput string) (string, error) {
 	return "Mock Response", nil
 }
 
-func (m *MockLLMAdapter) GenerateWithTools(ctx context.Context, systemPrompt, userInput string, tools []ToolManifest) (LLMResponse, error) {
+func (m *MockLLMAdapter) GenerateWithTools(_ context.Context, systemPrompt, userInput string, tools []ToolManifest) (LLMResponse, error) {
 	// Dummy response for event loop test
 	return LLMResponse{
 		Content: "Mock Content with Tools",
@@ -33,7 +33,7 @@ func TestEventLoopWorkerLimits(t *testing.T) {
 	engine.Start()
 
 	// Enqueue 5 tasks
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		err := engine.Submit(&Task{
 			ID:        "t",
 			System:    "Sys",
@@ -46,7 +46,7 @@ func TestEventLoopWorkerLimits(t *testing.T) {
 	}
 
 	// Collect 5 results
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		res := <-engine.Results()
 		if res.Error != nil {
 			t.Errorf("Task failed: %v", res.Error)
@@ -71,7 +71,7 @@ func TestEventLoopGoroutineLeak(t *testing.T) {
 
 	// Flood the worker pool
 	const taskCount = 100
-	for i := 0; i < taskCount; i++ {
+	for range taskCount {
 		err := engine.Submit(&Task{
 			ID:        "leak_test",
 			System:    "Sys",
@@ -84,7 +84,7 @@ func TestEventLoopGoroutineLeak(t *testing.T) {
 	}
 
 	// Drain results
-	for i := 0; i < taskCount; i++ {
+	for range taskCount {
 		<-engine.Results()
 	}
 

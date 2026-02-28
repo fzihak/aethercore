@@ -25,7 +25,7 @@ func (s *SysInfoTool) Manifest() core.ToolManifest {
 }
 
 // Execute performs the logic of the tool in an ephemeral context.
-func (s *SysInfoTool) Execute(ctx context.Context, args string) (string, error) {
+func (s *SysInfoTool) Execute(_ context.Context, args string) (string, error) {
 	// For this native tool, we ignore args since parameters are empty.
 
 	stats := struct {

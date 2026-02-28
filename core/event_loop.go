@@ -72,7 +72,7 @@ func (e *Engine) RegisterTool(t Tool) error {
 
 // Start boots the worker pool. Sub-50ms target for Pico Mode.
 func (e *Engine) Start() {
-	for i := 0; i < e.workerCount; i++ {
+	for i := range e.workerCount {
 		e.wg.Add(1)
 		go e.worker(i)
 	}

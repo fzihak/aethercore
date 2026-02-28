@@ -1,0 +1,76 @@
+﻿core\tools\sys_info.go:28:31: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (s *SysInfoTool) Execute(ctx context.Context, args string) (string, error) {
+                              ^
+cmd\aether\main.go:176:9: superfluous-else: if block ends with call to os.Exit function, so drop this else and outdent its block (revive)
+	} else {
+		core.Logger().Info("task_execution_success", slog.Duration("duration", res.Duration))
+	}
+core\event_loop_test.go:13:35: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (m *MockLLMAdapter) Generate(ctx context.Context, systemPrompt, userInput string) (string, error) {
+                                  ^
+core\event_loop_test.go:17:44: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (m *MockLLMAdapter) GenerateWithTools(ctx context.Context, systemPrompt, userInput string, tools []ToolManifest) (LLMResponse, error) {
+                                           ^
+core\logger.go:25:22: unused-parameter: parameter 'groups' seems to be unused, consider removing or renaming it as _ (revive)
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			                  ^
+cmd\aether\main.go:21:1: calculated cyclomatic complexity for function main is 19, max is 10 (cyclop)
+func main() {
+^
+cmd\aether\auth.go:49:49: do not compare errors directly "err != http.ErrServerClosed", use "!errors.Is(err, http.ErrServerClosed)" instead (err113)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		                                              ^
+cmd\aether\auth.go:99:9: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"unsupported platform\")" (err113)
+		err = fmt.Errorf("unsupported platform")
+		      ^
+core\auth.go:121:15: do not define dynamic errors, use wrapped static errors instead: "errors.New(\"invalid issuer\")" (err113)
+		return nil, errors.New("invalid issuer")
+		            ^
+core\auth.go:202:15: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"refresh failed with status %d\", resp.StatusCode)" (err113)
+		return nil, fmt.Errorf("refresh failed with status %d", resp.StatusCode)
+		            ^
+core\tool.go:52:10: do not define dynamic errors, use wrapped static errors instead: "errors.New(\"cannot register nil tool\")" (err113)
+		return errors.New("cannot register nil tool")
+		       ^
+core\tool.go:60:10: do not define dynamic errors, use wrapped static errors instead: "errors.New(\"tool already registered: \" + m.Name)" (err113)
+		return errors.New("tool already registered: " + m.Name)
+		       ^
+core\tool.go:72:15: do not define dynamic errors, use wrapped static errors instead: "errors.New(\"tool not found: \" + name)" (err113)
+		return nil, errors.New("tool not found: " + name)
+		            ^
+cmd\aether\main.go:113:6: Function 'runPicoMode' is too long (62 > 60) (funlen)
+func runPicoMode(goal string, isKernel bool) {
+     ^
+cmd\aether\auth.go:1:1: File is not properly formatted (gci)
+package main
+^
+cmd\aether\main.go:1:1: File is not properly formatted (gci)
+package main
+^
+core\auth.go:1:1: File is not properly formatted (gci)
+package core
+^
+cmd\aether\auth.go:125:3: exitAfterDefer: log.Fatalf will exit, and `defer cancel()` will not run (gocritic)
+		log.Fatalf("Failed to create request: %v", err)
+		^
+cmd\aether\main.go:64:3: exitAfterDefer: os.Exit will exit, and `defer func(){...}(...)` will not run (gocritic)
+		os.Exit(0)
+		^
+cmd\aether\auth.go:17:1: Comment should end in a period (godot)
+// authCmd groups the login and onboard logic
+^
+cmd\aether\auth.go:106:1: Comment should end in a period (godot)
+// deleteCmd handles GDPR account deletion
+^
+core\logger.go:58:1: Comment should end in a period (godot)
+// WithComponent creates a child logger annotated with a specific subsystem
+^
+core\event_loop.go:75:2: for loop can be changed to use an integer range (Go 1.22+) (intrange)
+	for i := 0; i < e.workerCount; i++ {
+	^
+core\event_loop_bench_test.go:28:2: for loop can be changed to use an integer range (Go 1.22+) (intrange)
+	for i := 0; i < b.N; i++ {
+	^
+core\event_loop_bench_test.go:40:2: for loop can be changed to use an integer range (Go 1.22+) (intrange)
+	for i := 0; i < b.N; i++ {
+	^

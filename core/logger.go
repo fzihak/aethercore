@@ -22,7 +22,7 @@ func InitLogger(level slog.Level) {
 		opts := &slog.HandlerOptions{
 			Level: level,
 			// Replace time key with standard otel specification
-			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
 				if a.Key == slog.TimeKey {
 					a.Key = "timestamp"
 				}
@@ -55,12 +55,12 @@ func Logger() *slog.Logger {
 	return Log
 }
 
-// WithComponent creates a child logger annotated with a specific subsystem
+// WithComponent creates a child logger annotated with a specific subsystem.
 func WithComponent(component string) *slog.Logger {
 	return Logger().With(slog.String("component", component))
 }
 
-// WithTask creates a child logger strictly bound to a specific ephemeral task ID
+// WithTask creates a child logger strictly bound to a specific ephemeral task ID.
 func WithTask(ctx context.Context, taskID string) *slog.Logger {
 	return Logger().With(
 		slog.String("task_id", taskID),

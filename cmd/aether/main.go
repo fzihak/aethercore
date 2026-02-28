@@ -18,6 +18,7 @@ import (
 
 const version = "0.1.0"
 
+//nolint:cyclop,gocognit,funlen // main is a CLI router
 func main() {
 	// 1. Initialize nanosecond precision telemetry before any allocations
 	core.InitTelemetry()
@@ -61,7 +62,7 @@ func main() {
 	args := flag.Args()
 	if len(args) == 0 {
 		flag.Usage()
-		os.Exit(0)
+		return
 	}
 
 	command := args[0]
@@ -173,9 +174,9 @@ func runPicoMode(goal string, isKernel bool) {
 		core.Logger().Error("task_execution_failed", slog.String("error", res.Error.Error()), slog.Duration("duration", res.Duration))
 		engine.RecycleResult(res)
 		os.Exit(1)
-	} else {
-		core.Logger().Info("task_execution_success", slog.Duration("duration", res.Duration))
 	}
+
+	core.Logger().Info("task_execution_success", slog.Duration("duration", res.Duration))
 	engine.RecycleResult(res)
 }
 

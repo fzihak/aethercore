@@ -1,0 +1,2 @@
+﻿ok  	github.com/aethercore/aethercore/core	0.588s
+ok  	github.com/aethercore/aethercore/core/tools	2.214s

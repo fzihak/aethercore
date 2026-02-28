@@ -29,6 +29,8 @@ var (
 	ErrInvalidToken     = errors.New("invalid or corrupted token")
 	ErrTokenExpired     = errors.New("token expired")
 	ErrSignatureInvalid = errors.New("invalid token signature")
+	ErrInvalidIssuer    = errors.New("invalid issuer")
+	ErrRefreshFailed    = errors.New("refresh failed")
 )
 
 // JWTPayload represents the expected claims in the AetherCore token.
@@ -53,7 +55,7 @@ func NewTokenStore() (*TokenStore, error) {
 	}
 	// For AetherCore, we standardize on ~/.aether or %APPDATA%\AetherCore
 	aetherDir := filepath.Join(configDir, "aether")
-	if err := os.MkdirAll(aetherDir, 0700); err != nil {
+	if err := os.MkdirAll(aetherDir, 0o700); err != nil {
 		return nil, err
 	}
 	return &TokenStore{ConfigDir: aetherDir}, nil
@@ -62,7 +64,7 @@ func NewTokenStore() (*TokenStore, error) {
 func (s *TokenStore) Save(token string) error {
 	path := filepath.Join(s.ConfigDir, tokenFileName)
 	// Write with 0600 permissions
-	return os.WriteFile(path, []byte(token), 0600)
+	return os.WriteFile(path, []byte(token), 0o600)
 }
 
 func (s *TokenStore) Load() (string, error) {
@@ -118,7 +120,7 @@ func (v *Verifier) Verify(token string) (*JWTPayload, error) {
 	}
 
 	if payload.Issuer != authDomain {
-		return nil, errors.New("invalid issuer")
+		return nil, ErrInvalidIssuer
 	}
 
 	if v.publicKey != nil {
@@ -199,7 +201,7 @@ func (m *AuthManager) SilentRefresh(oldToken string) (*JWTPayload, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("refresh failed with status %d", resp.StatusCode)
+		return nil, fmt.Errorf("%w: status %d", ErrRefreshFailed, resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)

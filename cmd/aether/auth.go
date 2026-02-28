@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,7 +15,11 @@ import (
 	"github.com/aethercore/aethercore/core"
 )
 
-// authCmd groups the login and onboard logic
+var ErrUnsupportedPlatform = errors.New("unsupported platform")
+
+// authCmd groups the login and onboard logic.
+//
+//nolint:gocritic // CLI exits are expected within the scaffold
 func authCmd(mode string) {
 	fmt.Printf("Starting AetherCore %s process...\n", mode)
 
@@ -46,7 +51,7 @@ func authCmd(mode string) {
 	})
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Local auth server failed: %v", err)
 		}
 	}()
@@ -96,14 +101,16 @@ func openBrowser(url string) {
 		/* #nosec G204 */
 		err = exec.Command("open", url).Start()
 	default:
-		err = fmt.Errorf("unsupported platform")
+		err = ErrUnsupportedPlatform
 	}
 	if err != nil {
 		log.Printf("Failed to open browser automatically. Please visit: %s", url)
 	}
 }
 
-// deleteCmd handles GDPR account deletion
+// deleteCmd handles GDPR account deletion.
+//
+//nolint:gocritic,mnd // CLI exits and local timeouts are intended
 func deleteCmd() {
 	fmt.Println("Deleting AetherCore account and associated cloud analytics...")
 

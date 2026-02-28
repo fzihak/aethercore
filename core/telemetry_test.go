@@ -7,7 +7,7 @@ import (
 
 func TestTelemetryLatency(t *testing.T) {
 	InitTelemetry()
-	
+
 	if EngineTelemetry.StartTime.IsZero() {
 		t.Fatal("Expected StartTime to be populated")
 	}
