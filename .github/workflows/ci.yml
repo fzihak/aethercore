@@ -32,7 +32,7 @@ jobs:
           GOARCH: ${{ matrix.arch }}
         run: |
           mkdir -p dist
-          go build -trimpath -ldflags="-s -w" -o dist/aether-${{ matrix.os }}-${{ matrix.arch }} ./cmd/aether/main.go || echo "No main.go yet"
+          go build -trimpath -ldflags="-s -w" -o dist/aether-${{ matrix.os }}-${{ matrix.arch }} ./cmd/aether || echo "No main.go yet"
 
   benchmark:
     name: Benchmark Metrics
@@ -47,7 +47,7 @@ jobs:
         run: go test -v -bench=. -benchmem ./...
       - name: Measure Binary Size
         run: |
-          go build -trimpath -ldflags="-s -w" -o aether cmd/aether/main.go
+          go build -trimpath -ldflags="-s -w" -o aether ./cmd/aether
           ls -lh aether
 
   test:
