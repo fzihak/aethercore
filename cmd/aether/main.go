@@ -178,29 +178,34 @@ func runPicoMode(goal string, isKernel bool) {
 
 // runToolNative bypasses the worker pool entirely to instantly execute a given tool for testing.
 func runToolNative(toolName, args string) {
-	fmt.Printf("AetherCore - Native Tool Execution: '%s'\n", toolName)
+	core.Logger().Info("native_tool_execution_started", slog.String("tool", toolName))
 	start := time.Now()
 
 	registry := core.NewToolRegistry()
 	if err := registry.Register(&tools.SysInfoTool{}); err != nil {
-		log.Fatalf("Tool registration failed: %v", err)
+		core.Logger().Error("tool_registration_failed", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	tool, err := registry.Get(toolName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		core.Logger().Error("tool_not_found", slog.String("tool", toolName), slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
-	fmt.Printf("[Latency %v] Executing...\n", time.Since(start))
+	core.Logger().Debug("executing_tool", slog.Duration("setup_latency", time.Since(start)))
 
 	out, err := tool.Execute(context.Background(), args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Tool execution failed: %v\n", err)
+		core.Logger().Error("tool_execution_failed", slog.String("tool", toolName), slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
-	fmt.Printf("\n--- Tool Output ---\n%s\n-------------------\n", out)
+	core.Logger().Info("tool_execution_success",
+		slog.String("tool", toolName),
+		slog.String("output", out),
+		slog.Duration("duration", time.Since(start)),
+	)
 }
 
 func listToolsCmd() {
