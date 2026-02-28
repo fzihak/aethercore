@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -72,10 +72,10 @@ func (e *Engine) Start() {
 func (e *Engine) Stop() {
 	// Signal all workers to terminate their loops
 	close(e.quit)
-	
+
 	// Strictly block until every single ephemeral worker has returned
 	e.wg.Wait()
-	
+
 	// Only after all workers are dead is it safe to close the queues
 	close(e.taskQueue)
 	close(e.resultQueue)
@@ -105,11 +105,23 @@ func (e *Engine) worker(id int) {
 			return
 		case t := <-e.taskQueue:
 			start := time.Now()
+
+			taskLog := WithTask(context.Background(), t.ID).With(slog.Int("worker_id", id))
+			taskLog.Info("ephemeral_task_started")
+
 			out, err := e.executeEphemeral(t)
+			duration := time.Since(start)
+
+			if err != nil {
+				taskLog.Error("ephemeral_task_failed", slog.String("error", err.Error()), slog.Duration("duration_ms", duration))
+			} else {
+				taskLog.Info("ephemeral_task_completed", slog.Duration("duration_ms", duration))
+			}
+
 			e.resultQueue <- Result{
 				TaskID:   t.ID,
 				Output:   out,
-				Duration: time.Since(start),
+				Duration: duration,
 				Error:    err,
 			}
 		}
@@ -141,16 +153,24 @@ func (e *Engine) executeEphemeral(t Task) (string, error) {
 	for _, call := range resp.ToolCalls {
 		tool, err := e.tools.Get(call.Name)
 		if err != nil {
-			log.Printf("Tool %s not found in registry", call.Name)
+			WithComponent("tool_orchestrator").Warn("tool_not_found_in_registry", slog.String("tool_name", call.Name))
 			continue
 		}
 
 		// capability enforcement will wrap `Execute` here
+		toolLog := WithComponent("tool_executor").With(slog.String("tool_name", call.Name))
+		toolLog.Debug("tool_execution_started", slog.String("arguments", call.Arguments))
+
+		toolStart := time.Now()
 		_, err = tool.Execute(ctx, call.Arguments)
+		toolDuration := time.Since(toolStart)
+
 		if err != nil {
-			log.Printf("Tool %s execution failed: %v", call.Name, err)
+			toolLog.Error("tool_execution_failed", slog.String("error", err.Error()), slog.Duration("duration_ms", toolDuration))
 			continue
 		}
+
+		toolLog.Info("tool_execution_completed", slog.Duration("duration_ms", toolDuration))
 
 		// Note: A real LLM loop would feed the result back to the LLM here.
 		// For Layer 0 scaffolding, we just execute sequentially.
