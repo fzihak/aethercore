@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/aethercore/aethercore/core"
@@ -21,11 +23,11 @@ func main() {
 
 	// 2. Guarantee telemetry is written to stdout on termination
 	defer func() {
-		// Strictly use os.Stdout so CI scripts can reliably parse this regardless of flag.Usage() stderr
-		fmt.Fprintf(os.Stdout, "\n[AetherCore] Boot Latency: %s\n", core.FormatBootLatency())
+		core.Logger().Info("system_shutdown", slog.String("boot_latency", core.FormatBootLatency()))
 	}()
 
 	kernelMode := flag.Bool("kernel", false, "Start in Kernel Mode (enables distributed mesh and Rust sandbox)")
+	logLevelStr := flag.String("log-level", "info", "Set the structured telemetry log level (debug, info, warn, error)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "AetherCore v%s - The Minimal Agent Kernel\n\n", version)
 		fmt.Fprintf(os.Stderr, "Usage:\n")
@@ -37,11 +39,23 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	// Parse flags for run command
-	goal := flag.String("goal", "", "The goal for the ephemeral agent to accomplish")
-	targetTool := flag.String("tool", "", "Bypass LLM and execute a specific native tool directly")
-	toolArgs := flag.String("args", "{}", "JSON arguments to pass to the target tool")
+	// Parse global flags
 	flag.Parse()
+
+	// Initialize structured logger
+	var level slog.Level
+	switch strings.ToLower(*logLevelStr) {
+	case "debug":
+		level = slog.LevelDebug
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		level = slog.LevelInfo
+	}
+	core.InitLogger(level)
+	core.Logger().Debug("aethercore_boot_sequence_started")
 
 	args := flag.Args()
 	if len(args) == 0 {
@@ -69,6 +83,16 @@ func main() {
 			fmt.Println("Usage: aether tool list")
 		}
 	case "run":
+		runCmd := flag.NewFlagSet("run", flag.ExitOnError)
+		goal := runCmd.String("goal", "", "The goal for the ephemeral agent to accomplish")
+		targetTool := runCmd.String("tool", "", "Bypass LLM and execute a specific native tool directly")
+		toolArgs := runCmd.String("args", "{}", "JSON arguments to pass to the target tool")
+
+		if err := runCmd.Parse(args[1:]); err != nil {
+			core.Logger().Error("failed_to_parse_run_flags", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+
 		if *targetTool != "" {
 			runToolNative(*targetTool, *toolArgs)
 			return
@@ -86,30 +110,33 @@ func main() {
 }
 
 func runPicoMode(goal string, isKernel bool) {
-	fmt.Println("Validating authentication...")
-	manager, err := core.NewAuthManager(nil) // Skipping PKI check for scaffolding
+	core.Logger().Debug("validating_authentication")
+	manager, err := core.NewAuthManager(nil)
 	if err != nil {
-		log.Fatalf("Failed to load auth manager: %v", err)
+		core.Logger().Error("auth_manager_init_failed", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	payload, err := manager.Authenticate()
 	if err != nil {
-		log.Fatalf("Authentication failed: %v. Please run 'aether login'", err)
+		core.Logger().Error("authentication_failed", slog.String("error", err.Error()), slog.String("action", "run aether login"))
+		os.Exit(1)
 	}
 
-	modeStr := "Pico Mode"
+	modeStr := "pico_mode"
 	if isKernel {
-		modeStr = "Kernel Mode"
+		modeStr = "kernel_mode"
 	}
-	fmt.Printf("Authenticated as %s. Starting %s...\n", payload.Subject, modeStr)
+	core.Logger().Info("engine_starting", slog.String("subject", payload.Subject), slog.String("mode", modeStr))
 
 	// Since we are strictly scaffolding Layer 0, we instantiate the Engine without a concrete LLM adapter
 	// In Month 1, we will plug in OpenAI/Anthropic/Ollama adapters here.
 	start := time.Now()
 
-	engine := core.NewEngine(nil, 4, 100) // 4 bounded goroutines
+	engine := core.NewEngine(nil, 4, 100)
 	if err := engine.RegisterTool(&tools.SysInfoTool{}); err != nil {
-		log.Fatalf("Core initialization failed at sys_info registration: %v", err)
+		core.Logger().Error("tool_registration_failed", slog.String("tool", "sys_info"), slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	engine.Start()
@@ -125,7 +152,8 @@ func runPicoMode(goal string, isKernel bool) {
 	}
 
 	if err := engine.Submit(task); err != nil {
-		log.Fatalf("Failed to submit task: %v", err)
+		core.Logger().Error("task_submission_failed", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	// Wait for singular result in this CLI run OR an interrupt
@@ -134,19 +162,17 @@ func runPicoMode(goal string, isKernel bool) {
 	case res = <-engine.Results():
 		engine.Stop()
 	case <-sigChan:
-		fmt.Println("\n[Interrupt] Received Ctrl+C. Gracefully shutting down worker pool...")
+		core.Logger().Warn("os_interrupt_received", slog.String("action", "shutting_down_worker_pool"))
 		engine.Stop()
-		fmt.Printf("Startup Time: %v\n", time.Since(start))
+		core.Logger().Info("shutdown_complete", slog.Duration("uptime", time.Since(start)))
 		os.Exit(130)
 	}
 
-	fmt.Printf("\n[Task Complete] Duration: %v\n", res.Duration)
-	fmt.Printf("Startup Time: %v\n", time.Since(start))
 	if res.Error != nil {
-		log.Fatalf("Error: %v", res.Error)
+		core.Logger().Error("task_execution_failed", slog.String("error", res.Error.Error()), slog.Duration("duration", res.Duration))
+		os.Exit(1)
 	} else {
-		// Mock output since there's no LLM yet
-		fmt.Println("Output: [Engine initialized and task dispatched successfully]")
+		core.Logger().Info("task_execution_success", slog.Duration("duration", res.Duration))
 	}
 }
 
