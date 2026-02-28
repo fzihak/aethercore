@@ -47,20 +47,25 @@ echo "[3/4] Measuring Boot Latency & Maximum Resident Set Size (RAM)..."
 
 if command -v /usr/bin/time &> /dev/null; then
     # GNU time maps its output to stderr. We pipe everything into combined.log
-    /usr/bin/time -v "$BIN_PATH" --help > combined.log 2>&1
+    # We append || true to prevent set -e from instantly killing the script if the CLI exits non-zero (e.g. usage text)
+    /usr/bin/time -v "$BIN_PATH" --help > combined.log 2>&1 || true
     
-    # Extract Maximum Resident Set Size (kbytes) from GNU time
-    MAX_RSS_KB=$(grep "Maximum resident set size" combined.log | awk '{print $6}')
-    MAX_RSS_MB=$(echo "scale=2; $MAX_RSS_KB / 1024" | bc)
+    # Extract Maximum Resident Set Size (kbytes) from GNU time (using || true for grep saftey)
+    MAX_RSS_KB=$(grep "Maximum resident set size" combined.log | awk '{print $6}' || true)
     
-    echo " -> Peak Memory Usage (Max RSS): ${MAX_RSS_MB} MB"
+    if [ -n "$MAX_RSS_KB" ]; then
+        MAX_RSS_MB=$(echo "scale=2; $MAX_RSS_KB / 1024" | bc)
+        echo " -> Peak Memory Usage (Max RSS): ${MAX_RSS_MB} MB"
+    else
+        echo " -> Peak Memory Usage: <Failed to parse GNU time>"
+    fi
 else
     echo " -> Peak Memory Usage: Skipped (Requires /usr/bin/time on POSIX)"
-    "$BIN_PATH" --help > combined.log 2>&1
+    "$BIN_PATH" --help > combined.log 2>&1 || true
 fi
 
-# Extract the nanosecond latency we built into main.go in Day 1.
-LATENCY_STR=$(grep "Boot Latency:" combined.log | awk -F': ' '{print $2}')
+# Extract the nanosecond latency we built into main.go in Day 1. || true prevents set -e crashes.
+LATENCY_STR=$(grep "Boot Latency:" combined.log | awk -F': ' '{print $2}' || true)
 if [ -z "$LATENCY_STR" ]; then
     LATENCY_STR="<Unknown>"
 fi
