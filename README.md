@@ -7,6 +7,9 @@
   <a href="https://github.com/fzihak/aethercore/actions">
     <img src="https://github.com/fzihak/aethercore/actions/workflows/ci.yml/badge.svg" alt="Build">
   </a>
+  <a href="https://github.com/fzihak/aethercore/actions/workflows/benchmark.yml">
+    <img src="https://github.com/fzihak/aethercore/actions/workflows/benchmark.yml/badge.svg" alt="Performance Benchmarks">
+  </a>
   <a href="https://github.com/fzihak/aethercore/releases">
     <img src="https://img.shields.io/github/v/release/fzihak/aethercore" alt="Release">
   </a>
