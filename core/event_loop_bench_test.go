@@ -32,7 +32,9 @@ func BenchmarkEventLoopAllocation(b *testing.B) {
 		t.Input = "Input"
 		t.CreatedAt = time.Now()
 
-		engine.Submit(t)
+		if err := engine.Submit(t); err != nil {
+			b.Fatalf("engine.Submit failed during benchmark: %v", err)
+		}
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -63,7 +65,9 @@ func BenchmarkAdapterLatency(b *testing.B) {
 		t := engine.GetTask()
 		t.ID = "bench_task"
 
-		engine.Submit(t)
+		if err := engine.Submit(t); err != nil {
+			b.Fatalf("engine.Submit failed during benchmark latency test: %v", err)
+		}
 
 		res := <-engine.Results()
 		engine.RecycleResult(res)
