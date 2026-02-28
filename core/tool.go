@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sync"
 )
 
 // Inviolable Rule: Layer 0 strictly uses Go stdlib ONLY.
@@ -36,6 +37,7 @@ type Tool interface {
 
 // ToolRegistry manages the available tools in an ephemeral execution.
 type ToolRegistry struct {
+	mu    sync.RWMutex
 	tools map[string]Tool
 }
 
@@ -46,6 +48,9 @@ func NewToolRegistry() *ToolRegistry {
 }
 
 func (r *ToolRegistry) Register(t Tool) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	m := t.Manifest()
 	if _, exists := r.tools[m.Name]; exists {
 		return errors.New("tool already registered: " + m.Name)
@@ -55,6 +60,9 @@ func (r *ToolRegistry) Register(t Tool) error {
 }
 
 func (r *ToolRegistry) Get(name string) (Tool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	t, exists := r.tools[name]
 	if !exists {
 		return nil, errors.New("tool not found: " + name)
@@ -63,6 +71,9 @@ func (r *ToolRegistry) Get(name string) (Tool, error) {
 }
 
 func (r *ToolRegistry) Manifests() []ToolManifest {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	manifests := make([]ToolManifest, 0, len(r.tools))
 	for _, t := range r.tools {
 		manifests = append(manifests, t.Manifest())
