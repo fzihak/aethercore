@@ -37,12 +37,13 @@ type Engine struct {
 	adapter     LLMAdapter
 	tools       *ToolRegistry
 	taskQueue   chan *Task
-	resultQueue chan Result
+	resultQueue chan *Result
 	workerCount int
 	wg          sync.WaitGroup
 	quit        chan struct{}
 	stopOnce    sync.Once
 	taskPool    sync.Pool
+	resultPool  sync.Pool
 }
 
 // NewEngine initializes the core event loop with bounded goroutines.
@@ -51,12 +52,15 @@ func NewEngine(adapter LLMAdapter, workerCount int, queueSize int) *Engine {
 		adapter:     adapter,
 		tools:       NewToolRegistry(),
 		taskQueue:   make(chan *Task, queueSize),
-		resultQueue: make(chan Result, queueSize),
+		resultQueue: make(chan *Result, queueSize),
 		workerCount: workerCount,
 		quit:        make(chan struct{}),
 	}
 	e.taskPool.New = func() interface{} {
 		return &Task{}
+	}
+	e.resultPool.New = func() interface{} {
+		return &Result{}
 	}
 	return e
 }
@@ -94,6 +98,11 @@ func (e *Engine) GetTask() *Task {
 	return e.taskPool.Get().(*Task)
 }
 
+// GetResult retrieves a zero-allocated Result from the sync pool.
+func (e *Engine) GetResult() *Result {
+	return e.resultPool.Get().(*Result)
+}
+
 // Submit enqueues a task. Returns ErrQueueFull if the bounded queue is saturated.
 func (e *Engine) Submit(t *Task) error {
 	select {
@@ -105,8 +114,20 @@ func (e *Engine) Submit(t *Task) error {
 }
 
 // Results provides a read-only channel to consume task outcomes.
-func (e *Engine) Results() <-chan Result {
+func (e *Engine) Results() <-chan *Result {
 	return e.resultQueue
+}
+
+// RecycleResult securely scrubs and returns the Result pointer to the sync pool.
+func (e *Engine) RecycleResult(r *Result) {
+	if r == nil {
+		return
+	}
+	r.TaskID = ""
+	r.Output = ""
+	r.Error = nil
+	r.Duration = 0
+	e.resultPool.Put(r)
 }
 
 // worker is the ephemeral execution primitive. State is strictly scoped to the task.
@@ -131,12 +152,13 @@ func (e *Engine) worker(id int) {
 				taskLog.Info("ephemeral_task_completed", slog.Duration("duration_ms", duration))
 			}
 
-			e.resultQueue <- Result{
-				TaskID:   t.ID,
-				Output:   out,
-				Duration: duration,
-				Error:    err,
-			}
+			res := e.GetResult()
+			res.TaskID = t.ID
+			res.Output = out
+			res.Duration = duration
+			res.Error = err
+
+			e.resultQueue <- res
 
 			// Recycle the pointer back into the pool. Zero allocations.
 			t.ID = ""

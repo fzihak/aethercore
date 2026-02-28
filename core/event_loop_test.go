@@ -54,6 +54,7 @@ func TestEventLoopWorkerLimits(t *testing.T) {
 		if res.Output != "Mock Content with Tools" {
 			t.Errorf("Unexpected output: %s", res.Output)
 		}
+		engine.RecycleResult(res)
 	}
 
 	engine.Stop()

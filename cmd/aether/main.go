@@ -157,7 +157,7 @@ func runPicoMode(goal string, isKernel bool) {
 	}
 
 	// Wait for singular result in this CLI run OR an interrupt
-	var res core.Result
+	var res *core.Result
 	select {
 	case res = <-engine.Results():
 		engine.Stop()
@@ -170,10 +170,12 @@ func runPicoMode(goal string, isKernel bool) {
 
 	if res.Error != nil {
 		core.Logger().Error("task_execution_failed", slog.String("error", res.Error.Error()), slog.Duration("duration", res.Duration))
+		engine.RecycleResult(res)
 		os.Exit(1)
 	} else {
 		core.Logger().Info("task_execution_success", slog.Duration("duration", res.Duration))
 	}
+	engine.RecycleResult(res)
 }
 
 // runToolNative bypasses the worker pool entirely to instantly execute a given tool for testing.
