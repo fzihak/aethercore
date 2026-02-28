@@ -121,8 +121,8 @@ func runPicoMode(goal string, isKernel bool) {
 
 	payload, err := manager.Authenticate()
 	if err != nil {
-		core.Logger().Warn("authentication_failed_bypassing_for_dev", slog.String("error", err.Error()))
-		payload = &core.JWTPayload{Subject: "dev_user"}
+		core.Logger().Error("authentication_failed", slog.String("error", err.Error()), slog.String("action", "run aether login"))
+		os.Exit(1)
 	}
 
 	modeStr := "pico_mode"
