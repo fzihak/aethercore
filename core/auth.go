@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -181,7 +182,10 @@ func (m *AuthManager) Authenticate() (*JWTPayload, error) {
 
 // SilentRefresh calls the auth cloud once to get a new token.
 func (m *AuthManager) SilentRefresh(oldToken string) (*JWTPayload, error) {
-	req, err := http.NewRequest("POST", "https://"+authDomain+"/refresh", strings.NewReader(`{"token":"`+oldToken+`"}`))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://"+authDomain+"/refresh", strings.NewReader(`{"token":"`+oldToken+`"}`))
 	if err != nil {
 		return nil, err
 	}

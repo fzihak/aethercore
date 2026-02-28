@@ -117,7 +117,10 @@ func deleteCmd() {
 		log.Fatalf("No active session found. Are you logged in?")
 	}
 
-	req, err := http.NewRequest("DELETE", "https://auth.aethercore.dev/account", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, "https://auth.aethercore.dev/account", nil)
 	if err != nil {
 		log.Fatalf("Failed to create request: %v", err)
 	}

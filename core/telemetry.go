@@ -11,6 +11,9 @@ type Telemetry struct {
 	StartTime time.Time
 }
 
+// ZeroLatency string literal constant for uninitialized timer scenarios.
+const ZeroLatency = "0ms"
+
 // Global engine telemetry instance. Initialized at absolute binary start.
 var EngineTelemetry Telemetry
 
@@ -32,7 +35,7 @@ func BootLatency() time.Duration {
 func FormatBootLatency() string {
 	lat := BootLatency()
 	if lat == 0 {
-		return "0ms"
+		return ZeroLatency
 	}
 	// For execution times under 1ms, format to microseconds for precision
 	if lat < time.Millisecond {
