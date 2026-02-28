@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/aethercore/aethercore/core"
@@ -83,7 +84,7 @@ func main() {
 			fmt.Println("Usage: aether tool list")
 		}
 	case "run":
-		runCmd := flag.NewFlagSet("run", flag.ExitOnError)
+		runCmd := flag.NewFlagSet("run", flag.ContinueOnError)
 		goal := runCmd.String("goal", "", "The goal for the ephemeral agent to accomplish")
 		targetTool := runCmd.String("tool", "", "Bypass LLM and execute a specific native tool directly")
 		toolArgs := runCmd.String("args", "{}", "JSON arguments to pass to the target tool")
@@ -141,9 +142,9 @@ func runPicoMode(goal string, isKernel bool) {
 
 	engine.Start()
 
-	// Intercept OS Signals for graceful shutdown
+	// Intercept OS Signals for graceful shutdown (SIGINT & SIGTERM for K8s)
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
 	task := core.Task{
 		ID:        "task_1",

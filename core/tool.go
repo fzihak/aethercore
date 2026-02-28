@@ -48,6 +48,10 @@ func NewToolRegistry() *ToolRegistry {
 }
 
 func (r *ToolRegistry) Register(t Tool) error {
+	if t == nil {
+		return errors.New("cannot register nil tool")
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

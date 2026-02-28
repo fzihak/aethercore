@@ -4,43 +4,47 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"sync"
 )
 
 // Inviolable Rule: Layer 0 strictly uses Go stdlib ONLY.
 
 var (
 	// Log is the global singleton logger for the AetherCore Layer 0 Kernel.
-	Log *slog.Logger
+	Log     *slog.Logger
+	logOnce sync.Once
 )
 
 // InitLogger boots the absolute zero-allocation JSON telemetry engine.
 // It maps natively to standard OpenTelemetry semantic conventions.
 func InitLogger(level slog.Level) {
-	opts := &slog.HandlerOptions{
-		Level: level,
-		// Replace time key with standard otel specification
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.TimeKey {
-				a.Key = "timestamp"
-			}
-			if a.Key == slog.MessageKey {
-				a.Key = "msg" // shorter for log shippers
-			}
-			return a
-		},
-	}
+	logOnce.Do(func() {
+		opts := &slog.HandlerOptions{
+			Level: level,
+			// Replace time key with standard otel specification
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.TimeKey {
+					a.Key = "timestamp"
+				}
+				if a.Key == slog.MessageKey {
+					a.Key = "msg" // shorter for log shippers
+				}
+				return a
+			},
+		}
 
-	// Strictly enforce JSON format on os.Stdout for parsing
-	handler := slog.NewJSONHandler(os.Stdout, opts)
+		// Strictly enforce JSON format on os.Stdout for parsing
+		handler := slog.NewJSONHandler(os.Stdout, opts)
 
-	// Pre-attach the global instance tags
-	Log = slog.New(handler).With(
-		slog.String("service.name", "aethercore"),
-		slog.String("service.version", "v0.1.0"), // will inject build tag later
-	)
+		// Pre-attach the global instance tags
+		Log = slog.New(handler).With(
+			slog.String("service.name", "aethercore"),
+			slog.String("service.version", "v0.1.0"), // will inject build tag later
+		)
 
-	// Re-map the standard 'log' package to use this structured logger as well
-	slog.SetDefault(Log)
+		// Re-map the standard 'log' package to use this structured logger as well
+		slog.SetDefault(Log)
+	})
 }
 
 // Logger returns the global instance, primarily used for testing or specific package overrides.

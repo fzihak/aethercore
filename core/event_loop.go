@@ -41,6 +41,7 @@ type Engine struct {
 	workerCount int
 	wg          sync.WaitGroup
 	quit        chan struct{}
+	stopOnce    sync.Once
 }
 
 // NewEngine initializes the core event loop with bounded goroutines.
@@ -70,15 +71,17 @@ func (e *Engine) Start() {
 
 // Stop gracefully shuts down the worker pool.
 func (e *Engine) Stop() {
-	// Signal all workers to terminate their loops
-	close(e.quit)
+	e.stopOnce.Do(func() {
+		// Signal all workers to terminate their loops
+		close(e.quit)
 
-	// Strictly block until every single ephemeral worker has returned
-	e.wg.Wait()
+		// Strictly block until every single ephemeral worker has returned
+		e.wg.Wait()
 
-	// Only after all workers are dead is it safe to close the queues
-	close(e.taskQueue)
-	close(e.resultQueue)
+		// Only after all workers are dead is it safe to close the queues
+		close(e.taskQueue)
+		close(e.resultQueue)
+	})
 }
 
 // Submit enqueues a task. Returns ErrQueueFull if the bounded queue is saturated.
