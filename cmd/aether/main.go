@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/aethercore/aethercore/core"
@@ -113,6 +114,10 @@ func runPicoMode(goal string, isKernel bool) {
 
 	engine.Start()
 
+	// Intercept OS Signals for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+
 	task := core.Task{
 		ID:        "task_1",
 		Input:     goal,
@@ -123,9 +128,17 @@ func runPicoMode(goal string, isKernel bool) {
 		log.Fatalf("Failed to submit task: %v", err)
 	}
 
-	// Wait for singular result in this CLI run
-	res := <-engine.Results()
-	engine.Stop()
+	// Wait for singular result in this CLI run OR an interrupt
+	var res core.Result
+	select {
+	case res = <-engine.Results():
+		engine.Stop()
+	case <-sigChan:
+		fmt.Println("\n[Interrupt] Received Ctrl+C. Gracefully shutting down worker pool...")
+		engine.Stop()
+		fmt.Printf("Startup Time: %v\n", time.Since(start))
+		os.Exit(130)
+	}
 
 	fmt.Printf("\n[Task Complete] Duration: %v\n", res.Duration)
 	fmt.Printf("Startup Time: %v\n", time.Since(start))
