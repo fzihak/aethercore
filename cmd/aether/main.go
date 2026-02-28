@@ -146,11 +146,10 @@ func runPicoMode(goal string, isKernel bool) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	task := core.Task{
-		ID:        "task_1",
-		Input:     goal,
-		CreatedAt: time.Now(),
-	}
+	task := engine.GetTask()
+	task.ID = "task_1"
+	task.Input = goal
+	task.CreatedAt = time.Now()
 
 	if err := engine.Submit(task); err != nil {
 		core.Logger().Error("task_submission_failed", slog.String("error", err.Error()))

@@ -36,24 +36,29 @@ type Result struct {
 type Engine struct {
 	adapter     LLMAdapter
 	tools       *ToolRegistry
-	taskQueue   chan Task
+	taskQueue   chan *Task
 	resultQueue chan Result
 	workerCount int
 	wg          sync.WaitGroup
 	quit        chan struct{}
 	stopOnce    sync.Once
+	taskPool    sync.Pool
 }
 
 // NewEngine initializes the core event loop with bounded goroutines.
 func NewEngine(adapter LLMAdapter, workerCount int, queueSize int) *Engine {
-	return &Engine{
+	e := &Engine{
 		adapter:     adapter,
 		tools:       NewToolRegistry(),
-		taskQueue:   make(chan Task, queueSize),
+		taskQueue:   make(chan *Task, queueSize),
 		resultQueue: make(chan Result, queueSize),
 		workerCount: workerCount,
 		quit:        make(chan struct{}),
 	}
+	e.taskPool.New = func() interface{} {
+		return &Task{}
+	}
+	return e
 }
 
 // RegisterTool adds a tool to the engine's ephemeral registry.
@@ -84,8 +89,13 @@ func (e *Engine) Stop() {
 	})
 }
 
+// GetTask retrieves a zero-allocated Task from the sync pool.
+func (e *Engine) GetTask() *Task {
+	return e.taskPool.Get().(*Task)
+}
+
 // Submit enqueues a task. Returns ErrQueueFull if the bounded queue is saturated.
-func (e *Engine) Submit(t Task) error {
+func (e *Engine) Submit(t *Task) error {
 	select {
 	case e.taskQueue <- t:
 		return nil
@@ -127,13 +137,19 @@ func (e *Engine) worker(id int) {
 				Duration: duration,
 				Error:    err,
 			}
+
+			// Recycle the pointer back into the pool. Zero allocations.
+			t.ID = ""
+			t.System = ""
+			t.Input = ""
+			e.taskPool.Put(t)
 		}
 	}
 }
 
 // executeEphemeral is the core orchestration loop for a single task.
 // No state leaks outside this function.
-func (e *Engine) executeEphemeral(t Task) (string, error) {
+func (e *Engine) executeEphemeral(t *Task) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 

@@ -34,7 +34,7 @@ func TestEventLoopWorkerLimits(t *testing.T) {
 
 	// Enqueue 5 tasks
 	for i := 0; i < 5; i++ {
-		err := engine.Submit(Task{
+		err := engine.Submit(&Task{
 			ID:        "t",
 			System:    "Sys",
 			Input:     "Input",
@@ -71,7 +71,7 @@ func TestEventLoopGoroutineLeak(t *testing.T) {
 	// Flood the worker pool
 	const taskCount = 100
 	for i := 0; i < taskCount; i++ {
-		err := engine.Submit(Task{
+		err := engine.Submit(&Task{
 			ID:        "leak_test",
 			System:    "Sys",
 			Input:     "Input",
