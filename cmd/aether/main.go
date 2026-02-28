@@ -107,7 +107,9 @@ func runPicoMode(goal string, isKernel bool) {
 	start := time.Now()
 
 	engine := core.NewEngine(nil, 4, 100) // 4 bounded goroutines
-	engine.RegisterTool(&tools.SysInfoTool{})
+	if err := engine.RegisterTool(&tools.SysInfoTool{}); err != nil {
+		log.Fatalf("Core initialization failed at sys_info registration: %v", err)
+	}
 
 	engine.Start()
 
@@ -141,7 +143,9 @@ func runToolNative(toolName, args string) {
 	start := time.Now()
 
 	registry := core.NewToolRegistry()
-	registry.Register(&tools.SysInfoTool{})
+	if err := registry.Register(&tools.SysInfoTool{}); err != nil {
+		log.Fatalf("Tool registration failed: %v", err)
+	}
 
 	tool, err := registry.Get(toolName)
 	if err != nil {
@@ -162,7 +166,9 @@ func runToolNative(toolName, args string) {
 
 func listToolsCmd() {
 	registry := core.NewToolRegistry()
-	registry.Register(&tools.SysInfoTool{})
+	if err := registry.Register(&tools.SysInfoTool{}); err != nil {
+		log.Fatalf("Tool registration failed: %v", err)
+	}
 
 	fmt.Println("Available Native Tools:")
 	fmt.Println("---------------------------------------------------------")
