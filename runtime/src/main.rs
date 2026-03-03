@@ -1,8 +1,10 @@
 use std::time::Instant;
 
 mod manifest;
+mod ipc;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Capture initialization time before ANY allocations happen
     let start = Instant::now();
 
@@ -28,7 +30,12 @@ fn main() {
     
     // Output OpenTelemetry JSON matching the Go Kernel format
     println!(
-        r#"{{"level":"INFO","msg":"system_shutdown","boot_latency":"{:?}","component":"sandbox"}}"#,
+        r#"{{"level":"INFO","msg":"sandbox_booted","boot_latency":"{:?}","component":"sandbox"}}"#,
         duration
     );
+
+    let socket_path = std::env::temp_dir().join("aether-sandbox.sock");
+    ipc::start_uds_server(&socket_path).await?;
+
+    Ok(())
 }
