@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aethercore/aethercore/core"
-	"github.com/aethercore/aethercore/core/tools"
+	"github.com/fzihak/aethercore/core"
+	"github.com/fzihak/aethercore/core/tools"
 )
 
 const version = "0.1.0"

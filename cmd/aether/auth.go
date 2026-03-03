@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/aethercore/aethercore/core"
+	"github.com/fzihak/aethercore/core"
 )
 
 var ErrUnsupportedPlatform = errors.New("unsupported platform")

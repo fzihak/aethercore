@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/aethercore/aethercore/core"
+	"github.com/fzihak/aethercore/core"
 )
 
 // SysInfoTool provides baseline hardware and runtime heuristics for the agent.

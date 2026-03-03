@@ -1,4 +1,4 @@
-module github.com/aethercore/aethercore
+module github.com/fzihak/aethercore
 
 go 1.24.0
 

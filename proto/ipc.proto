@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package aether.ipc.v1;
 
-option go_package = "github.com/aethercore/aethercore/core/ipc;ipc";
+option go_package = "github.com/fzihak/aethercore/core/ipc;ipc";
 
 service Sandbox {
   rpc ExecuteTool (ToolRequest) returns (ToolResponse);

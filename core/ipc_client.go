@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aethercore/aethercore/core/ipc"
+	"github.com/fzihak/aethercore/core/ipc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

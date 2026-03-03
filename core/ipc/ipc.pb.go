@@ -147,7 +147,7 @@ const file_ipc_proto_rawDesc = "" +
 	"outputJson\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage2Q\n" +
 	"\aSandbox\x12F\n" +
-	"\vExecuteTool\x12\x1a.aether.ipc.v1.ToolRequest\x1a\x1b.aether.ipc.v1.ToolResponseB/Z-github.com/aethercore/aethercore/core/ipc;ipcb\x06proto3"
+	"\vExecuteTool\x12\x1a.aether.ipc.v1.ToolRequest\x1a\x1b.aether.ipc.v1.ToolResponseB+Z)github.com/fzihak/aethercore/core/ipc;ipcb\x06proto3"
 
 var (
 	file_ipc_proto_rawDescOnce sync.Once

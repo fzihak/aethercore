@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aethercore/aethercore/core"
+	"github.com/fzihak/aethercore/core"
 )
 
 func TestSysInfoTool(t *testing.T) {
