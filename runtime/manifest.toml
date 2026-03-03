@@ -1,0 +1,23 @@
+# AetherCore Layer 2 Sandbox - Strict Capability Declaration Manifest
+# No tool or plugin may execute without declaring its intent here.
+
+[sandbox]
+strict_mode = true
+
+# The orchestrator tool
+[[tools]]
+name = "orchestrator"
+version = "1.0.0"
+description = "Core orchestrator process"
+capabilities = ["state"]
+max_runtime_ms = 500
+memory_limit_mb = 50
+
+# A demonstrative tool that needs network and filesystem
+[[tools]]
+name = "web_fetcher"
+version = "1.0.0"
+description = "Fetches external network resources to the local filesystem"
+capabilities = ["network", "filesystem"]
+max_runtime_ms = 2000
+memory_limit_mb = 100
