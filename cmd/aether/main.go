@@ -18,7 +18,7 @@ import (
 
 const version = "0.1.0"
 
-//nolint:cyclop,gocognit,funlen // main is a CLI router
+//nolint:gocognit,funlen // main is a CLI router
 func main() {
 	// 1. Initialize nanosecond precision telemetry before any allocations
 	core.InitTelemetry()
@@ -92,7 +92,7 @@ func main() {
 
 		if err := runCmd.Parse(args[1:]); err != nil {
 			core.Logger().Error("failed_to_parse_run_flags", slog.String("error", err.Error()))
-			os.Exit(1)
+			os.Exit(1) //nolint:gocritic // exitAfterDefer: deferred telemetry is for clean exits, parse failures abort immediately
 		}
 
 		if *targetTool != "" {

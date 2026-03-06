@@ -19,7 +19,6 @@ var ErrUnsupportedPlatform = errors.New("unsupported platform")
 
 // authCmd groups the login and onboard logic.
 //
-//nolint:gocritic // CLI exits are expected within the scaffold
 func authCmd(mode string) {
 	fmt.Printf("Starting AetherCore %s process...\n", mode)
 
