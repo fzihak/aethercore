@@ -29,6 +29,12 @@ Thumbs.db
 *.pem
 *.key
 
+# Generated artifacts
+lint_results.txt
+lint.txt
+bench_results.txt
+test_output.txt
+
 # Local Data
 data/
 *.db
