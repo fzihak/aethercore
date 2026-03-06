@@ -18,7 +18,7 @@ import (
 
 const version = "0.1.0"
 
-//nolint:gocognit,funlen // main is a CLI router
+//nolint:funlen // main is a CLI router
 func main() {
 	// 1. Initialize nanosecond precision telemetry before any allocations
 	core.InitTelemetry()

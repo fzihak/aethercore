@@ -29,6 +29,7 @@ linters:
     - err113        # Static sentinel errors aren't required at every fmt.Errorf call
     - usetesting    # t.Context() isn't universally available across Go versions
     - tenv          # Deprecated since v1.64.0; replaced by usetesting
+    - gci           # Requires module-name section config; standard grouping already applied manually
 
 linters-settings:
   gocognit:
