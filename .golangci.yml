@@ -1,0 +1,87 @@
+# AetherCore Layer 0 — Strict Lint Configuration
+# Enforces zero external dependencies and maximum code quality for the Sacred Kernel.
+# Run: golangci-lint run ./...
+
+run:
+  timeout: 5m
+  go: "1.22"
+
+linters:
+  enable-all: true
+  disable:
+    - exhaustruct   # Struct literal exhaustiveness enforcement is too noisy
+    - gofumpt       # Conflicts with standard gofmt in CI environments
+    - nlreturn      # Overly strict blank-line style enforcement
+    - wsl           # Whitespace linter produces false positives in our style
+    - godox         # TODO/FIXME markers are intentional during active development
+    - paralleltest  # Not all tests are safe to parallelize (pool state tests)
+    - depguard      # External dependency policy is managed via go.mod directly
+    - ireturn       # Interface return types are idiomatic for our adapter pattern
+    - varnamelen    # Short variable names are idiomatic Go (ctx, t, e, err)
+    - tagliatelle   # JSON tag naming convention enforcement is too strict
+
+linters-settings:
+  gocognit:
+    min-complexity: 20
+
+  cyclop:
+    max-complexity: 15
+
+  funlen:
+    lines: 100
+    statements: 60
+
+  dupl:
+    threshold: 150
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+
+  gosec:
+    excludes:
+      - G115 # Integer overflow conversion is safe in our telemetry context
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+      - name: unexported-return
+        severity: warning
+      - name: var-naming
+        severity: warning
+
+  govet:
+    enable-all: true
+
+  staticcheck:
+    checks: ["all"]
+
+issues:
+  exclude-rules:
+    # Test files have relaxed rules — allow longer functions and error skips
+    - path: "_test\\.go"
+      linters:
+        - errcheck
+        - funlen
+        - dupl
+        - gocognit
+        - cyclop
+
+    # CLI entrypoint is inherently complex (command routing, flag parsing)
+    - path: "cmd/"
+      linters:
+        - funlen
+        - cyclop
+        - gocognit
+
+    # Generated protobuf code — skip all linting
+    - path: "core/ipc/"
+      linters:
+        - all
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
