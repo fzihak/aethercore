@@ -9,6 +9,11 @@
 //! Plugins must expose a `run() -> i32` export as their canonical entry point.
 //! Plugins that export no `run` function are accepted but produce no output.
 
+// The WASM engine is infrastructure used by the IPC handler at runtime.
+// Dead-code warnings are suppressed here because the public API surface
+// will be called from ipc.rs once tool dispatch is wired (Day 14 → stable).
+#![allow(dead_code)]
+
 use wasmtime::{Config, Engine, Linker, Module, Store};
 
 /// Errors produced during WASM plugin execution.
