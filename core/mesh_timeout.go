@@ -113,10 +113,10 @@ func (l *EphemeralLog) TaskCount() int {
 func WithTaskDeadline(ctx context.Context, task *PropagatedTask) (context.Context, context.CancelFunc) {
 	if task.DeadlineUnixNs <= 0 {
 		// No deadline — return a plain cancel-only context.
-		return context.WithCancel(ctx) //nolint:gocritic // cancel func is returned to caller per function contract
+		return context.WithCancel(ctx) // #nosec G118 -- cancel func is returned to caller per function contract
 	}
 	deadline := time.Unix(0, task.DeadlineUnixNs)
-	return context.WithDeadline(ctx, deadline) //nolint:gocritic // cancel func is returned to caller per function contract
+	return context.WithDeadline(ctx, deadline) // #nosec G118 -- cancel func is returned to caller per function contract
 }
 
 // SetTaskDeadline stamps a PropagatedTask with an absolute deadline derived

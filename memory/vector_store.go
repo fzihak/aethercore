@@ -22,9 +22,9 @@ type VectorEntry struct {
 
 // MemoryResult is returned by Query, sorted by descending cosine similarity.
 type MemoryResult struct { //nolint:revive // MemoryResult is intentionally explicit to avoid ambiguity with other Result types across packages
-	ID      string
-	Payload string
-	Score   float32 // cosine similarity in [-1, 1]; higher is more similar
+	ID      string  `json:"id"`
+	Payload string  `json:"payload"`
+	Score   float32 `json:"score"` // cosine similarity in [-1, 1]; higher is more similar
 }
 
 // VectorStore is a thread-safe, in-memory nearest-neighbour store.

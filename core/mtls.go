@@ -75,7 +75,7 @@ func LoadOrCreateIdentity(nodeID string) (*NodeIdentity, error) {
 	}
 
 	// Load existing CA cert to check expiry.
-	caCertPEM, err := os.ReadFile(caCertPath) //nolint:gosec // path is constructed from UserConfigDir + hardcoded suffix
+	caCertPEM, err := os.ReadFile(caCertPath) // #nosec G304 -- path is constructed from UserConfigDir + hardcoded suffix
 	if err != nil {
 		return nil, fmt.Errorf("mtls: read ca cert: %w", err)
 	}

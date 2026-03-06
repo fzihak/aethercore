@@ -148,9 +148,9 @@ func tokenDigest(t *QueryToken) [32]byte {
 	binary.BigEndian.PutUint64(lenBuf[:], uint64(len(idBytes)))
 	h.Write(lenBuf[:])
 	h.Write(idBytes)
-	binary.BigEndian.PutUint64(lenBuf[:], uint64(t.IssuedAt)) //nolint:gosec // IssuedAt is a unix nanosecond timestamp; negative values are impossible in practice
+	binary.BigEndian.PutUint64(lenBuf[:], uint64(t.IssuedAt)) // #nosec G115 -- IssuedAt is a unix nanosecond timestamp; negative values are impossible in practice
 	h.Write(lenBuf[:])
-	binary.BigEndian.PutUint64(lenBuf[:], uint64(t.TopK)) //nolint:gosec // TopK is a small positive int; overflow is impossible in practice
+	binary.BigEndian.PutUint64(lenBuf[:], uint64(t.TopK)) // #nosec G115 -- TopK is a small positive int; overflow is impossible in practice
 	h.Write(lenBuf[:])
 	buf := make([]byte, 4*len(t.Embedding))
 	for i, v := range t.Embedding {
