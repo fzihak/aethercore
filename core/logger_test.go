@@ -36,7 +36,11 @@ func TestStructuredJSONLogger(t *testing.T) {
 		t.Fatalf("Expected component 'test_engine', got '%v'", output["component"])
 	}
 
-	if int(output["latency_ms"].(float64)) != 42 {
+	latencyRaw, ok := output["latency_ms"].(float64)
+	if !ok {
+		t.Fatal("Expected latency_ms to be a float64")
+	}
+	if int(latencyRaw) != 42 {
 		t.Fatalf("Expected latency_ms 42, got '%v'", output["latency_ms"])
 	}
 }
