@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -89,7 +90,8 @@ func Generate(cfg Config) error {
 			continue
 		}
 
-		src := filepath.Join("templates", entry.Name())
+		// embed.FS always uses forward slashes regardless of OS.
+		src := path.Join("templates", entry.Name())
 		dst := outputFileName(dir, entry.Name(), data.PackageName)
 
 		if err := renderTemplate(src, dst, data); err != nil {
