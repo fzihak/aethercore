@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,7 +45,7 @@ func (a *Adapter) HandleRun(ctx context.Context, chatID int64, goal string) {
 		Input: goal,
 		Metadata: map[string]string{
 			"source":  "telegram",
-			"chat_id": fmt.Sprintf("%d", chatID),
+			"chat_id": strconv.FormatInt(chatID, 10),
 		},
 	}
 

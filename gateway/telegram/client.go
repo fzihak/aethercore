@@ -116,7 +116,7 @@ func (c *Client) post(ctx context.Context, method string, body, result any) erro
 
 // do executes req, checks the API envelope for ok=true, and decodes result.
 func (c *Client) do(req *http.Request, method string, result any) error {
-	resp, err := c.http.Do(req) //nolint:bodyclose // closed below via defer
+	resp, err := c.http.Do(req) // #nosec G704 -- URL built from configured baseURL; method is always a const string
 	if err != nil {
 		return fmt.Errorf("telegram: %s: %w", method, err)
 	}

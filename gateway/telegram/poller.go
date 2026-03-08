@@ -71,7 +71,7 @@ func (p *Poller) Run(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			}
-			backoff = min(backoff*2, backoffMax)
+			backoff = minDuration(backoff*2, backoffMax)
 			continue
 		}
 
@@ -87,8 +87,8 @@ func (p *Poller) Run(ctx context.Context) {
 	}
 }
 
-// min returns the smaller of a and b (backoff cap helper).
-func min(a, b time.Duration) time.Duration {
+// minDuration returns the smaller of a and b (backoff cap helper).
+func minDuration(a, b time.Duration) time.Duration {
 	if a < b {
 		return a
 	}

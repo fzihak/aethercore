@@ -26,7 +26,7 @@ func NewRouter() *Router {
 }
 
 // Register adds a handler for the given slash-command (without the leading "/").
-// Example: router.Register("run", myHandler)  →  handles "/run <args>"
+// Example: router.Register("run", myHandler)  →  handles "/run <args>".
 func (r *Router) Register(command string, h CommandHandler) {
 	r.commands[strings.ToLower(command)] = h
 }
@@ -78,14 +78,14 @@ func (r *Router) Handle(ctx context.Context, upd Update) {
 //	"/run hello world"   → ("run", "hello world")
 //	"/help@MyBot"        → ("help", "")
 //	"just text"          → ("", "just text")
-func parseCommand(text string) (cmd, args string) {
+func parseCommand(text string) (string, string) {
 	if !strings.HasPrefix(text, "/") {
 		return "", text
 	}
 
 	// Strip leading slash and split on first whitespace.
 	rest := text[1:]
-	var name string
+	var name, args string
 	if idx := strings.IndexByte(rest, ' '); idx >= 0 {
 		name = rest[:idx]
 		args = strings.TrimSpace(rest[idx+1:])

@@ -50,12 +50,13 @@ func handleTelegramCmd(args []string) {
 	registry := sdk.NewModuleRegistry()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	core.Logger().Info("telegram_gateway_starting")
 
 	bot := telegram.NewBot(botToken, registry)
-	if err := bot.Start(ctx); err != nil {
+	err := bot.Start(ctx)
+	stop() // release signal resources regardless of outcome
+	if err != nil {
 		core.Logger().Error("telegram_gateway_failed", slog.String("error", err.Error()))
 		os.Exit(1)
 	}

@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -42,7 +43,7 @@ func NewBot(token string, registry *sdk.ModuleRegistry) *Bot {
 // Returns an error only if the initial token validation (GetMe) fails.
 func (b *Bot) Start(ctx context.Context) error {
 	if b.token == "" {
-		return fmt.Errorf("telegram: bot token must not be empty")
+		return errors.New("telegram: bot token must not be empty")
 	}
 
 	client := NewClient(b.token)

@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -145,14 +146,8 @@ func TestAPIError_message(t *testing.T) {
 	}
 }
 
-// isAPIError is a type-assertion helper (errors.As requires a pointer-to-interface).
+// isAPIError reports whether err is (or wraps) an *APIError, and if so
+// populates *target.  Uses errors.As to handle wrapped errors.
 func isAPIError(err error, target **APIError) bool {
-	if err == nil {
-		return false
-	}
-	if ae, ok := err.(*APIError); ok {
-		*target = ae
-		return true
-	}
-	return false
+	return errors.As(err, target)
 }

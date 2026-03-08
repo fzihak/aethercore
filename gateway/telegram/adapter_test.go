@@ -3,7 +3,6 @@ package telegram
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,7 +19,7 @@ func TestHandleRun_noModules_repliesWarning(t *testing.T) {
 	defer srv.Close()
 
 	registry := sdk.NewModuleRegistry()
-	adapter, _ := newTestAdapter(srv, registry)
+	adapter := newTestAdapter(srv, registry)
 
 	adapter.HandleRun(context.Background(), 1, "do something")
 
@@ -35,7 +34,7 @@ func TestHandleRun_emptyGoal_repliesUsage(t *testing.T) {
 	defer srv.Close()
 
 	registry := sdk.NewModuleRegistry()
-	adapter, _ := newTestAdapter(srv, registry)
+	adapter := newTestAdapter(srv, registry)
 
 	adapter.HandleRun(context.Background(), 1, "")
 
@@ -54,7 +53,7 @@ func TestHandleRun_withModule_includesOutput(t *testing.T) {
 	mc := sdk.NewModuleContext("echo")
 	_ = sdk.StartModule(context.Background(), registry, mod, mc)
 
-	adapter, _ := newTestAdapter(srv, registry)
+	adapter := newTestAdapter(srv, registry)
 	adapter.HandleRun(context.Background(), 1, "hello")
 
 	if !strings.Contains(sentText, "echo:hello") {
@@ -69,7 +68,7 @@ func TestHandleHelp_containsCommands(t *testing.T) {
 	srv := captureSendMessage(t, &sentText)
 	defer srv.Close()
 
-	adapter, _ := newTestAdapter(srv, sdk.NewModuleRegistry())
+	adapter := newTestAdapter(srv, sdk.NewModuleRegistry())
 	adapter.HandleHelp(context.Background(), 1, "")
 
 	for _, keyword := range []string{"/run", "/modules", "/help", "AetherCore"} {
@@ -84,7 +83,7 @@ func TestHandleModules_noModules(t *testing.T) {
 	srv := captureSendMessage(t, &sentText)
 	defer srv.Close()
 
-	adapter, _ := newTestAdapter(srv, sdk.NewModuleRegistry())
+	adapter := newTestAdapter(srv, sdk.NewModuleRegistry())
 	adapter.HandleModules(context.Background(), 1, "")
 
 	if !strings.Contains(sentText, "No modules") {
@@ -102,7 +101,7 @@ func TestHandleModules_withModule_showsManifest(t *testing.T) {
 	mc := sdk.NewModuleContext("echo")
 	_ = sdk.StartModule(context.Background(), registry, mod, mc)
 
-	adapter, _ := newTestAdapter(srv, registry)
+	adapter := newTestAdapter(srv, registry)
 	adapter.HandleModules(context.Background(), 1, "")
 
 	if !strings.Contains(sentText, "echo") {
@@ -136,11 +135,10 @@ func captureSendMessage(t *testing.T, dest *string) *httptest.Server {
 }
 
 // newTestAdapter constructs an Adapter backed by a test HTTP server.
-func newTestAdapter(srv *httptest.Server, registry *sdk.ModuleRegistry) (*Adapter, *Client) {
+func newTestAdapter(srv *httptest.Server, registry *sdk.ModuleRegistry) *Adapter {
 	client := newTestClient("token", srv.URL+"/bot")
 	log := newTestLogger()
-	adapter := NewAdapter(client, registry, log)
-	return adapter, client
+	return NewAdapter(client, registry, log)
 }
 
 // echoModule is a minimal sdk.Module that echoes its task input.
@@ -158,5 +156,5 @@ func (e *echoModule) Manifest() sdk.ModuleManifest {
 func (e *echoModule) OnStart(_ context.Context, _ *sdk.ModuleContext) error { return nil }
 func (e *echoModule) OnStop(_ context.Context) error                        { return nil }
 func (e *echoModule) HandleTask(_ context.Context, t *sdk.ModuleTask) (*sdk.ModuleResult, error) {
-	return &sdk.ModuleResult{TaskID: t.ID, Output: fmt.Sprintf("echo:%s", t.Input)}, nil
+	return &sdk.ModuleResult{TaskID: t.ID, Output: "echo:" + t.Input}, nil
 }
