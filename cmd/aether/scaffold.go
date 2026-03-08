@@ -12,8 +12,6 @@ import (
 
 // handleScaffoldCmd parses 'aether scaffold' sub-flags and generates a new
 // Layer 1 Module project from the SDK's embedded templates.
-//
-//nolint:cyclop // flag-parsing + validation — branching is inherently linear
 func handleScaffoldCmd(args []string) {
 	scaffoldCmd := flag.NewFlagSet("scaffold", flag.ContinueOnError)
 	name := scaffoldCmd.String("name", "", "Module name in kebab-case (e.g. web-search) [required]")

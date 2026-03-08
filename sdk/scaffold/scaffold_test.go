@@ -145,7 +145,7 @@ func TestGenerate_existingNonEmptyDir(t *testing.T) {
 	dir := t.TempDir()
 	// Pre-populate the output directory
 	existingFile := filepath.Join(dir, "existing.txt")
-	if err := os.WriteFile(existingFile, []byte("hello"), 0o644); err != nil {
+	if err := os.WriteFile(existingFile, []byte("hello"), 0o600); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 

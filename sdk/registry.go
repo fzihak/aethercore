@@ -6,21 +6,22 @@ import (
 	"sync"
 )
 
+
 // Sentinel errors for the ModuleRegistry.
 var (
-	ErrNilModule             = errors.New("sdk: cannot register nil module")
-	ErrModuleAlreadyLoaded   = errors.New("sdk: module already loaded")
-	ErrModuleNotFound        = errors.New("sdk: module not found")
-	ErrNilModuleTool         = errors.New("sdk: cannot register nil tool")
+	ErrNilModule           = errors.New("sdk: cannot register nil module")
+	ErrModuleAlreadyLoaded = errors.New("sdk: module already loaded")
+	ErrModuleNotFound      = errors.New("sdk: module not found")
+	ErrNilModuleTool       = errors.New("sdk: cannot register nil tool")
 )
 
-// ErrModuleToolAlreadyRegistered is returned when two tools share the same name.
-type ErrModuleToolAlreadyRegistered struct {
+// ModuleToolAlreadyRegisteredError is returned when two tools share the same name.
+type ModuleToolAlreadyRegisteredError struct {
 	Name string
 }
 
-func (e *ErrModuleToolAlreadyRegistered) Error() string {
-	return fmt.Sprintf("sdk: tool already registered: %s", e.Name)
+func (e *ModuleToolAlreadyRegisteredError) Error() string {
+	return "sdk: tool already registered: " + e.Name
 }
 
 // ModuleRegistry is the kernel-side catalogue of loaded Layer 1 Modules.

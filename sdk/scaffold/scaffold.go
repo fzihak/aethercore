@@ -94,7 +94,7 @@ func Generate(cfg Config) error {
 		src := path.Join("templates", entry.Name())
 		dst := outputFileName(dir, entry.Name(), data.PackageName)
 
-		if err := renderTemplate(src, dst, data); err != nil {
+		if err := renderTemplate(src, dst, &data); err != nil {
 			return err
 		}
 	}
@@ -117,7 +117,7 @@ func validateConfig(cfg Config) error {
 func checkOutputDir(dir string) error {
 	info, err := os.Stat(dir)
 	if errors.Is(err, os.ErrNotExist) {
-		return os.MkdirAll(dir, 0o755)
+		return os.MkdirAll(dir, 0o750) //nolint:gosec // G301: 0750 grants owner+group; world has no access
 	}
 	if err != nil {
 		return fmt.Errorf("scaffold: stat %q: %w", dir, err)
@@ -147,7 +147,7 @@ func outputFileName(dir, tmplName, pkgName string) string {
 }
 
 // renderTemplate parses one embedded template and writes the result to dst.
-func renderTemplate(src, dst string, data templateData) error {
+func renderTemplate(src, dst string, data *templateData) error {
 	raw, err := templateFS.ReadFile(src)
 	if err != nil {
 		return fmt.Errorf("scaffold: read template %q: %w", src, err)
@@ -158,7 +158,7 @@ func renderTemplate(src, dst string, data templateData) error {
 		return fmt.Errorf("scaffold: parse template %q: %w", src, err)
 	}
 
-	f, err := os.Create(dst)
+	f, err := os.Create(dst) //nolint:gosec // G304: dst is filepath.Join(validatedOutputDir, knownTemplateName)
 	if err != nil {
 		return fmt.Errorf("scaffold: create %q: %w", dst, err)
 	}

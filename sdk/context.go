@@ -91,7 +91,7 @@ func (r *ModuleToolRegistry) register(t ModuleTool) error {
 	}
 	name := t.ToolName()
 	if _, exists := r.items[name]; exists {
-		return &ErrModuleToolAlreadyRegistered{Name: name}
+		return &ModuleToolAlreadyRegisteredError{Name: name}
 	}
 	r.items[name] = t
 	return nil
