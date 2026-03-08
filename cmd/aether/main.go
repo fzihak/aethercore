@@ -107,7 +107,7 @@ func handleRunCmd(args []string, kernelMode bool) {
 
 	if err := runCmd.Parse(args); err != nil {
 		core.Logger().Error("failed_to_parse_run_flags", slog.String("error", err.Error()))
-		os.Exit(1) //nolint:gocritic // exitAfterDefer: deferred telemetry is for clean exits, parse failures abort immediately
+		os.Exit(1)
 	}
 
 	if *targetTool != "" {
