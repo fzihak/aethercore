@@ -210,6 +210,10 @@ func (e *Engine) executeEphemeral(t *Task) (string, error) {
 
 	guardRes := e.guard.Scan(ctx, t.Input, security.GuardConfig{})
 	if !guardRes.IsSafe {
+		WithTask(ctx, t.ID).Warn("security_violation_user_input",
+			slog.String("rule", guardRes.Violations[0].Category),
+			slog.String("description", guardRes.Violations[0].Description),
+		)
 		return "", fmt.Errorf("security_violation: %s", guardRes.Violations[0].Description)
 	}
 
