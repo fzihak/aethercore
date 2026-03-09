@@ -42,3 +42,14 @@ func TestManifestValidator_CanonicalJSONSerialization(t *testing.T) {
 		t.Errorf("Expected strictly alphabetical JSON keys")
 	}
 }
+
+func TestManifestValidator_SignatureMismatch(t *testing.T) {
+	kr := NewKeyRing()
+	validator := NewManifestValidator(kr)
+	
+	sig := "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+	ok, err := validator.Verify([]byte(`{"a":2}`), sig)
+	if ok || err == nil {
+		t.Errorf("Expected signature mismatch error")
+	}
+}
