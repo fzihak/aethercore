@@ -240,9 +240,17 @@ func (e *Engine) executeEphemeral(t *Task) (string, error) {
 		for _, call := range resp.ToolCalls {
 			result, execErr := e.dispatchTool(ctx, call)
 
-			// TODO: Phase 1 Prompt injection scan on tool output BEFORE giving to LLM
-			// scanResult := e.guard.ScanToolOutput(ctx, call.Name, result)
-			// if scanResult.Action == Block { ... }
+			var contentStr string
+			if execErr != nil {
+				contentStr = execErr.Error()
+			} else {
+				contentStr = result
+			}
+
+			guardRes := e.guard.Scan(ctx, contentStr, security.GuardConfig{})
+			if !guardRes.IsSafe {
+				return "", fmt.Errorf("security_violation_tool_output: %s", guardRes.Violations[0].Description)
+			}
 
 			toolResults = append(toolResults, ToolResultMessage{
 				ToolCallID: call.ID,
