@@ -19,3 +19,12 @@ func TestChainManager_GenesisBlock(t *testing.T) {
 		t.Fatalf("invalid genesis block metadata")
 	}
 }
+
+func TestChainManager_HashSerialization(t *testing.T) {
+	cm := NewChainManager()
+	event := AuditEvent{Type: "TEST_EVENT", Actor: "system"}
+	h := cm.calculateHash(Block{Index: 1, Event: event, PreviousHash: cm.blocks[0].Hash})
+	if len(h) != 64 {
+		t.Fatalf("expected valid SHA-256 hex string")
+	}
+}
