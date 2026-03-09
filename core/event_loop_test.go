@@ -14,7 +14,7 @@ func (m *MockLLMAdapter) Generate(_ context.Context, systemPrompt, userInput str
 	return "Mock Response", nil
 }
 
-func (m *MockLLMAdapter) GenerateWithTools(_ context.Context, systemPrompt, userInput string, tools []ToolManifest) (LLMResponse, error) {
+func (m *MockLLMAdapter) GenerateWithTools(_ context.Context, messages []Message, tools []ToolManifest) (LLMResponse, error) {
 	// Dummy response for event loop test
 	return LLMResponse{
 		Content: "Mock Content with Tools",
