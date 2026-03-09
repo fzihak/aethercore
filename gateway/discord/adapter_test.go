@@ -42,7 +42,7 @@ func captureSendMessage(t *testing.T, dest *string) *httptest.Server {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 		*dest = req.Content
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Message{ID: "1", ChannelID: "123", Content: *dest}) //nolint:errcheck
+		json.NewEncoder(w).Encode(Message{ID: "1", ChannelID: "123", Content: *dest}) //nolint:errcheck // test helper: encoding always succeeds
 	}))
 }
 

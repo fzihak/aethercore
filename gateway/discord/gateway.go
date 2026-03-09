@@ -3,6 +3,7 @@ package discord
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -194,7 +195,7 @@ func (g *Gateway) receiveLoop(ctx context.Context, ws *wsConn) error {
 		text, err := ws.ReadText()
 		if err != nil {
 			if ctx.Err() != nil {
-				return nil
+				return ctx.Err() //nolint:wrapcheck // propagate cancellation directly
 			}
 			return fmt.Errorf("discord: ws recv: %w", err)
 		}
@@ -222,9 +223,9 @@ func (g *Gateway) handlePayload(ctx context.Context, p *GatewayPayload) error {
 	case OpcodeHeartbeatACK:
 		g.log.Debug("discord_heartbeat_ack")
 	case OpcodeReconnect:
-		return fmt.Errorf("server requested reconnect (op=7)")
+		return errors.New("server requested reconnect (op=7)")
 	case OpcodeInvalidSession:
-		return fmt.Errorf("invalid session (op=9)")
+		return errors.New("invalid session (op=9)")
 	}
 	return nil
 }

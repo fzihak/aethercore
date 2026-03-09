@@ -12,6 +12,7 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -23,9 +24,9 @@ import (
 
 // Sentinel errors for scheduler operations.
 var (
-	ErrJobExists   = fmt.Errorf("scheduler: job already exists")
-	ErrJobNotFound = fmt.Errorf("scheduler: job not found")
-	ErrNoHandler   = fmt.Errorf("scheduler: no task handler registered")
+	ErrJobExists   = errors.New("scheduler: job already exists")
+	ErrJobNotFound = errors.New("scheduler: job not found")
+	ErrNoHandler   = errors.New("scheduler: no task handler registered")
 )
 
 // tickInterval controls how often the scheduler checks for due jobs.
@@ -276,14 +277,14 @@ func (s *Scheduler) tickLoop(ctx context.Context) {
 			s.Stop()
 			return
 		case now := <-ticker.C:
-			s.evaluateAndDispatch(now)
+			s.evaluateAndDispatch(ctx, now)
 		}
 	}
 }
 
 // evaluateAndDispatch checks every enabled job against the current time
 // and dispatches any that match.
-func (s *Scheduler) evaluateAndDispatch(now time.Time) {
+func (s *Scheduler) evaluateAndDispatch(ctx context.Context, now time.Time) {
 	// Truncate to minute boundary for cron comparison
 	nowMinute := now.Truncate(time.Minute)
 
@@ -328,6 +329,6 @@ func (s *Scheduler) evaluateAndDispatch(now time.Time) {
 		)
 
 		// Dispatch in a goroutine so slow handlers don't block the tick loop
-		go dispatcher(context.Background(), task)
+		go dispatcher(ctx, task)
 	}
 }

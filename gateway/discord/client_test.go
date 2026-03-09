@@ -3,6 +3,7 @@ package discord
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -41,7 +42,7 @@ func TestGetGatewayURL_success(t *testing.T) {
 func TestGetGatewayURL_apiError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(APIError{Code: 0, Message: "401: Unauthorized"}) //nolint:errcheck
+		json.NewEncoder(w).Encode(APIError{Code: 0, Message: "401: Unauthorized"}) //nolint:errcheck // test helper: encoding always succeeds
 	}))
 	defer srv.Close()
 
@@ -57,7 +58,7 @@ func TestGetGatewayURL_apiError(t *testing.T) {
 func TestSendMessage_success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Message{ //nolint:errcheck
+		json.NewEncoder(w).Encode(Message{ //nolint:errcheck // test helper: encoding always succeeds
 			ID:        "999",
 			ChannelID: "456",
 			Content:   "hello",
@@ -78,7 +79,7 @@ func TestSendMessage_success(t *testing.T) {
 func TestSendMessage_apiError_returnsError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(APIError{Code: 50013, Message: "Missing Permissions"}) //nolint:errcheck
+		json.NewEncoder(w).Encode(APIError{Code: 50013, Message: "Missing Permissions"}) //nolint:errcheck // test helper: encoding always succeeds
 	}))
 	defer srv.Close()
 
@@ -87,8 +88,8 @@ func TestSendMessage_apiError_returnsError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	apiErr, ok := err.(*APIError)
-	if !ok {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
 		t.Fatalf("want *APIError, got %T: %v", err, err)
 	}
 	if apiErr.Code != 50013 {

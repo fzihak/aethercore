@@ -95,7 +95,7 @@ func TestWebSocketCloseFrame(t *testing.T) {
 	go func() {
 		// Server sends a close frame (unmasked, FIN=1, opcode=0x8, length=0).
 		closeFrame := []byte{0x88, 0x00}
-		serverConn.Write(closeFrame) //nolint:errcheck
+		serverConn.Write(closeFrame) //nolint:errcheck // test helper: write to pipe never fails meaningfully
 		// Close the server side so the client's echo-close write doesn't block.
 		serverConn.Close()
 	}()
@@ -119,16 +119,16 @@ func TestWebSocketPingPong(t *testing.T) {
 	go func() {
 		// 1. Send a Ping frame (FIN=1, opcode=0x9, unmasked, no payload).
 		pingFrame := []byte{0x89, 0x00}
-		serverConn.Write(pingFrame) //nolint:errcheck
+		serverConn.Write(pingFrame) //nolint:errcheck // test helper: write to pipe never fails meaningfully
 
 		// 2. Consume the Pong sent back by the client.
 		pongBuf := make([]byte, 10)
-		serverConn.Read(pongBuf) //nolint:errcheck
+		serverConn.Read(pongBuf) //nolint:errcheck // test helper: drain pong response
 
 		// 3. Send a Text frame with the real payload (unmasked, FIN=1).
 		payload := []byte(want)
-		serverConn.Write([]byte{0x81, byte(len(payload))}) //nolint:errcheck
-		serverConn.Write(payload)                          //nolint:errcheck
+		serverConn.Write([]byte{0x81, byte(len(payload))}) //nolint:errcheck // test helper: write to pipe never fails meaningfully
+		serverConn.Write(payload)                          //nolint:errcheck // test helper: write to pipe never fails meaningfully
 	}()
 
 	cWS := &wsConn{conn: clientConn, r: bufio.NewReader(clientConn)}

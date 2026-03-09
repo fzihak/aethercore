@@ -130,11 +130,11 @@ func ParseCron(expr string) (CronExpr, error) {
 
 // Matches returns true if t satisfies this cron expression.
 func (c CronExpr) Matches(t time.Time) bool {
-	return hasBit(c.Minute, uint(t.Minute())) &&
-		hasBit(c.Hour, uint(t.Hour())) &&
-		hasBit(c.DayMonth, uint(t.Day())) &&
-		hasBit(c.Month, uint(t.Month())) &&
-		hasBit(c.DayWeek, uint(t.Weekday()))
+	return hasBit(c.Minute, safeUint(t.Minute())) &&
+		hasBit(c.Hour, safeUint(t.Hour())) &&
+		hasBit(c.DayMonth, safeUint(t.Day())) &&
+		hasBit(c.Month, safeUint(int(t.Month()))) &&
+		hasBit(c.DayWeek, safeUint(int(t.Weekday())))
 }
 
 // NextAfter returns the next time after t that matches this expression.
@@ -178,8 +178,6 @@ func parseField(field string, lo, hi int) (uint64, error) {
 }
 
 func parsePart(part string, lo, hi int) (uint64, error) {
-	var bits uint64
-
 	// Check for step: "*/2", "1-10/3", etc.
 	rangeStr, stepStr, hasStep := strings.Cut(part, "/")
 
@@ -192,45 +190,67 @@ func parsePart(part string, lo, hi int) (uint64, error) {
 		step = s
 	}
 
-	// Parse range or wildcard
 	if rangeStr == "*" {
-		for v := lo; v <= hi; v += step {
-			bits = setBit(bits, uint(v))
-		}
-		return bits, nil
+		return parseWildcard(lo, hi, step), nil
 	}
 
-	// Check for range: "1-5"
 	startStr, endStr, isRange := strings.Cut(rangeStr, "-")
 	if isRange {
-		start, err := strconv.Atoi(startStr)
-		if err != nil {
-			return 0, fmt.Errorf("%w: invalid range start %q", ErrFieldRange, startStr)
-		}
-		end, err := strconv.Atoi(endStr)
-		if err != nil {
-			return 0, fmt.Errorf("%w: invalid range end %q", ErrFieldRange, endStr)
-		}
-		if start < lo || end > hi || start > end {
-			return 0, fmt.Errorf("%w: range %d-%d outside [%d, %d]", ErrFieldRange, start, end, lo, hi)
-		}
-		for v := start; v <= end; v += step {
-			bits = setBit(bits, uint(v))
-		}
-		return bits, nil
+		return parseRange(startStr, endStr, lo, hi, step)
 	}
 
-	// Single value
-	val, err := strconv.Atoi(rangeStr)
+	return parseSingle(rangeStr, lo, hi)
+}
+
+// parseWildcard generates the bitset for a wildcard field with a given step.
+func parseWildcard(lo, hi, step int) uint64 {
+	var bits uint64
+	for v := lo; v <= hi; v += step {
+		bits = setBit(bits, safeUint(v))
+	}
+	return bits
+}
+
+// parseRange generates the bitset for a range field like "1-5" or "1-5/2".
+func parseRange(startStr, endStr string, lo, hi, step int) (uint64, error) {
+	start, err := strconv.Atoi(startStr)
 	if err != nil {
-		return 0, fmt.Errorf("%w: invalid value %q", ErrFieldRange, rangeStr)
+		return 0, fmt.Errorf("%w: invalid range start %q", ErrFieldRange, startStr)
+	}
+	end, err := strconv.Atoi(endStr)
+	if err != nil {
+		return 0, fmt.Errorf("%w: invalid range end %q", ErrFieldRange, endStr)
+	}
+	if start < lo || end > hi || start > end {
+		return 0, fmt.Errorf("%w: range %d-%d outside [%d, %d]", ErrFieldRange, start, end, lo, hi)
+	}
+	var bits uint64
+	for v := start; v <= end; v += step {
+		bits = setBit(bits, safeUint(v))
+	}
+	return bits, nil
+}
+
+// parseSingle generates the bitset for a single numeric value.
+func parseSingle(valStr string, lo, hi int) (uint64, error) {
+	val, err := strconv.Atoi(valStr)
+	if err != nil {
+		return 0, fmt.Errorf("%w: invalid value %q", ErrFieldRange, valStr)
 	}
 	if val < lo || val > hi {
 		return 0, fmt.Errorf("%w: value %d outside [%d, %d]", ErrFieldRange, val, lo, hi)
 	}
-	bits = setBit(bits, uint(val))
-	return bits, nil
+	return setBit(0, safeUint(val)), nil
 }
 
 func setBit(bits uint64, pos uint) uint64 { return bits | (1 << pos) }
 func hasBit(bits uint64, pos uint) bool   { return bits&(1<<pos) != 0 }
+
+// safeUint converts a non-negative int to uint without triggering gosec G115.
+// All callers are range-bounded by cron field validation (0-59 max).
+func safeUint(v int) uint {
+	if v < 0 {
+		return 0
+	}
+	return uint(v) // #nosec G115 — value is range-checked by cron field boundaries
+}

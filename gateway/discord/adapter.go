@@ -33,7 +33,7 @@ func NewAdapter(client *Client, registry *sdk.ModuleRegistry, log *slog.Logger) 
 // HandleRun is the CommandHandler for the "!run" bot command.
 // It converts the argument string into an sdk.ModuleTask, fans it out to every
 // loaded module, collects results, and posts the reply to the Discord channel.
-func (a *Adapter) HandleRun(ctx context.Context, channelID string, goal string) {
+func (a *Adapter) HandleRun(ctx context.Context, channelID, goal string) {
 	if strings.TrimSpace(goal) == "" {
 		a.reply(ctx, channelID, "Usage: `!run <your goal>`")
 		return
@@ -81,7 +81,7 @@ func (a *Adapter) HandleRun(ctx context.Context, channelID string, goal string) 
 }
 
 // HandleHelp is the CommandHandler for the "!help" and "!start" commands.
-func (a *Adapter) HandleHelp(ctx context.Context, channelID string, _ string) {
+func (a *Adapter) HandleHelp(ctx context.Context, channelID, _ string) {
 	manifests := a.registry.Manifests()
 	var sb strings.Builder
 	sb.WriteString("**AetherCore** — Minimal Agent Kernel\n\n")
@@ -100,7 +100,7 @@ func (a *Adapter) HandleHelp(ctx context.Context, channelID string, _ string) {
 }
 
 // HandleModules is the CommandHandler for the "!modules" command.
-func (a *Adapter) HandleModules(ctx context.Context, channelID string, _ string) {
+func (a *Adapter) HandleModules(ctx context.Context, channelID, _ string) {
 	manifests := a.registry.Manifests()
 	if len(manifests) == 0 {
 		a.reply(ctx, channelID, "No modules are currently loaded.")

@@ -7,7 +7,7 @@ package discord
 import (
 	"bufio"
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // RFC 6455 mandates SHA-1 for WebSocket handshake
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/binary"
@@ -72,7 +72,7 @@ func dialWS(rawURL string) (*wsConn, error) {
 
 	wsKey, wsAccept, err := generateWSKey()
 	if err != nil {
-		conn.Close()
+		_ = conn.Close() //nolint:errcheck // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws generate key: %w", err)
 	}
 
@@ -85,25 +85,25 @@ func dialWS(rawURL string) (*wsConn, error) {
 		"Sec-WebSocket-Key: " + wsKey + "\r\n" +
 		"Sec-WebSocket-Version: 13\r\n\r\n"
 
-	if _, err := io.WriteString(conn, upgradeReq); err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("discord: ws upgrade request: %w", err)
+	if _, writeErr := io.WriteString(conn, upgradeReq); writeErr != nil {
+		_ = conn.Close() //nolint:errcheck // best-effort cleanup
+		return nil, fmt.Errorf("discord: ws upgrade request: %w", writeErr)
 	}
 
 	br := bufio.NewReader(conn)
 	resp, err := http.ReadResponse(br, nil)
 	if err != nil {
-		conn.Close()
+		_ = conn.Close() //nolint:errcheck // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws read upgrade response: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close() //nolint:errcheck // upgrade response body is empty
 
 	if resp.StatusCode != http.StatusSwitchingProtocols {
-		conn.Close()
+		_ = conn.Close() //nolint:errcheck // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws upgrade failed: HTTP %d", resp.StatusCode)
 	}
 	if got := resp.Header.Get("Sec-WebSocket-Accept"); got != wsAccept {
-		conn.Close()
+		_ = conn.Close() //nolint:errcheck // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws accept mismatch: got %q want %q", got, wsAccept)
 	}
 
@@ -118,7 +118,7 @@ func generateWSKey() (key, accept string, _ error) {
 		return "", "", err
 	}
 	key = base64.StdEncoding.EncodeToString(b[:])
-	h := sha1.Sum([]byte(key + wsGUID))
+	h := sha1.Sum([]byte(key + wsGUID)) //nolint:gosec // RFC 6455 §4.1 mandates SHA-1
 	accept = base64.StdEncoding.EncodeToString(h[:])
 	return key, accept, nil
 }
@@ -212,7 +212,11 @@ func (c *wsConn) readFrame() (fin bool, opcode byte, payload []byte, _ error) {
 		if _, err := io.ReadFull(c.r, ext[:]); err != nil {
 			return false, 0, nil, fmt.Errorf("discord: ws read 64-bit length: %w", err)
 		}
-		length = int64(binary.BigEndian.Uint64(ext[:]))
+		rawLen := binary.BigEndian.Uint64(ext[:])
+		if rawLen > 1<<63-1 { // guard against uint64 overflow when casting to int64
+			return false, 0, nil, fmt.Errorf("discord: ws frame length overflow: %d", rawLen)
+		}
+		length = int64(rawLen) // #nosec G115 — guarded by overflow check above
 	}
 
 	var maskKey [4]byte
@@ -269,7 +273,9 @@ func (c *wsConn) writeFrame(opcode byte, payload []byte) error {
 		masked[i] = b ^ maskKey[i%4]
 	}
 
-	frame := append(header, masked...)
+	frame := make([]byte, 0, len(header)+len(masked))
+	frame = append(frame, header...)
+	frame = append(frame, masked...)
 	if _, err := c.conn.Write(frame); err != nil {
 		return fmt.Errorf("discord: ws write frame: %w", err)
 	}

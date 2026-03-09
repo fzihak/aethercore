@@ -163,7 +163,7 @@ func TestEvaluateAndDispatch(t *testing.T) {
 
 	// Simulate a tick at exactly :00
 	now := time.Date(2026, 3, 9, 14, 0, 0, 0, time.UTC)
-	s.evaluateAndDispatch(now)
+	s.evaluateAndDispatch(context.Background(), now)
 
 	// Give the goroutine a moment
 	time.Sleep(50 * time.Millisecond)
@@ -199,8 +199,8 @@ func TestDoubleFirPrevention(t *testing.T) {
 
 	now := time.Date(2026, 3, 9, 14, 0, 0, 0, time.UTC)
 	// Fire twice in the same minute window
-	s.evaluateAndDispatch(now)
-	s.evaluateAndDispatch(now.Add(15 * time.Second))
+	s.evaluateAndDispatch(context.Background(), now)
+	s.evaluateAndDispatch(context.Background(), now.Add(15*time.Second))
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -223,7 +223,7 @@ func TestDisabledJobNotDispatched(t *testing.T) {
 	_ = s.DisableJob("test")
 
 	now := time.Date(2026, 3, 9, 14, 30, 0, 0, time.UTC)
-	s.evaluateAndDispatch(now)
+	s.evaluateAndDispatch(context.Background(), now)
 
 	time.Sleep(50 * time.Millisecond)
 	if count != 0 {
@@ -236,7 +236,7 @@ func TestNoDispatcherSafe(t *testing.T) {
 	_ = s.AddJob("test", "* * * * *", "goal")
 	// No dispatcher set — should not panic
 	now := time.Date(2026, 3, 9, 14, 30, 0, 0, time.UTC)
-	s.evaluateAndDispatch(now) // should be a no-op
+	s.evaluateAndDispatch(context.Background(), now) // should be a no-op
 }
 
 func TestHandleTask(t *testing.T) {

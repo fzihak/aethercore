@@ -90,7 +90,7 @@ func (c *Client) do(req *http.Request, path string, result any) error {
 	req.Header.Set("Authorization", "Bot "+c.token)
 	req.Header.Set("User-Agent", "AetherCore (https://github.com/fzihak/aethercore, v0.1.0)")
 
-	resp, err := c.http.Do(req)
+	resp, err := c.http.Do(req) // #nosec G704 — URL is a fixed API base, not user-tainted
 	if err != nil {
 		return fmt.Errorf("discord: %s: %w", path, err)
 	}
