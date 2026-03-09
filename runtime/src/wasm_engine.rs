@@ -73,7 +73,7 @@ impl WasmSandbox {
 
         // For Day 10/11 stable branch, we stub actual WASI preview 2 deep mapping
         // because the API fluctuates rapidly. We setup basic fuel limits & memory limits.
-        let mut linker: Linker<()> = Linker::new(&self.engine);
+        let linker: Linker<()> = Linker::new(&self.engine);
 
         let mut store = Store::new(&self.engine, ());
 
