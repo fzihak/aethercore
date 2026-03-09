@@ -18,7 +18,6 @@ type gatewayConfig struct {
 	name     string // "telegram" or "discord"
 	envKey   string // e.g. "TELEGRAM_TOKEN"
 	commands string // e.g. "/start, /help, /run, and /modules"
-	prefix   string // command prefix description
 }
 
 // gatewayStarter is a function that takes a bot token, registry, and blocking

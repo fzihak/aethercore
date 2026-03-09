@@ -7,7 +7,7 @@ package discord
 import (
 	"bufio"
 	"crypto/rand"
-	"crypto/sha1" //nolint:gosec // RFC 6455 mandates SHA-1 for WebSocket handshake
+	"crypto/sha1" // #nosec G505 — RFC 6455 mandates SHA-1 for WebSocket handshake
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/binary"
@@ -72,7 +72,7 @@ func dialWS(rawURL string) (*wsConn, error) {
 
 	wsKey, wsAccept, err := generateWSKey()
 	if err != nil {
-		_ = conn.Close() //nolint:errcheck // best-effort cleanup
+		_ = conn.Close() // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws generate key: %w", err)
 	}
 
@@ -86,24 +86,24 @@ func dialWS(rawURL string) (*wsConn, error) {
 		"Sec-WebSocket-Version: 13\r\n\r\n"
 
 	if _, writeErr := io.WriteString(conn, upgradeReq); writeErr != nil {
-		_ = conn.Close() //nolint:errcheck // best-effort cleanup
+		_ = conn.Close() // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws upgrade request: %w", writeErr)
 	}
 
 	br := bufio.NewReader(conn)
 	resp, err := http.ReadResponse(br, nil)
 	if err != nil {
-		_ = conn.Close() //nolint:errcheck // best-effort cleanup
+		_ = conn.Close() // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws read upgrade response: %w", err)
 	}
-	_ = resp.Body.Close() //nolint:errcheck // upgrade response body is empty
+	_ = resp.Body.Close() // upgrade response body is empty
 
 	if resp.StatusCode != http.StatusSwitchingProtocols {
-		_ = conn.Close() //nolint:errcheck // best-effort cleanup
+		_ = conn.Close() // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws upgrade failed: HTTP %d", resp.StatusCode)
 	}
 	if got := resp.Header.Get("Sec-WebSocket-Accept"); got != wsAccept {
-		_ = conn.Close() //nolint:errcheck // best-effort cleanup
+		_ = conn.Close() // best-effort cleanup
 		return nil, fmt.Errorf("discord: ws accept mismatch: got %q want %q", got, wsAccept)
 	}
 
@@ -118,7 +118,7 @@ func generateWSKey() (key, accept string, _ error) {
 		return "", "", err
 	}
 	key = base64.StdEncoding.EncodeToString(b[:])
-	h := sha1.Sum([]byte(key + wsGUID)) //nolint:gosec // RFC 6455 §4.1 mandates SHA-1
+	h := sha1.Sum([]byte(key + wsGUID)) // #nosec G401 — RFC 6455 §4.1 mandates SHA-1
 	accept = base64.StdEncoding.EncodeToString(h[:])
 	return key, accept, nil
 }
