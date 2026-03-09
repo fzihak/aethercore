@@ -292,16 +292,12 @@ func (e *Engine) dispatchTool(ctx context.Context, call ToolCall) (string, error
 		toolLog := WithComponent("tool_executor").With(slog.String("tool_name", call.Name))
 		toolLog.Debug("tool_execution_started", slog.String("arguments", call.Arguments))
 		if e.audit != nil {
-			taskID, ok := ctx.Value(TaskIDContextKey).(string)
-			if !ok {
-				taskID = "unknown" // Fallback if task ID not in context
-			}
 			_ = e.audit.LogEvent(ctx, audit.AuditEvent{
-				ID:        taskID + "-tool-exec",
+				ID:        task.ID + "-tool-exec",
 				Timestamp: time.Now(),
 				Type:      "AUDIT_TOOL_EXECUTE",
 				Actor:     "engine",
-				Metadata:  map[string]interface{}{"task_id": taskID, "tool": call.Name},
+				Metadata:  map[string]interface{}{"task_id": task.ID, "tool": call.Name},
 			})
 		}
 		toolStart := time.Now()
@@ -311,28 +307,24 @@ func (e *Engine) dispatchTool(ctx context.Context, call ToolCall) (string, error
 
 		if execErr == nil {
 			if e.guard != nil {
-				taskID, ok := ctx.Value(TaskIDContextKey).(string)
-				if !ok {
-					taskID = "unknown" // Fallback if task ID not in context
-				}
-				violationOpt := e.guard.Scan(ctx, string(res), security.GuardConfig{})
-				if !violationOpt.IsSafe {
+				violationOpt := e.guard.Scan(string(res))
+				if violationOpt != nil {
 					if e.audit != nil {
 						_ = e.audit.LogEvent(ctx, audit.AuditEvent{
-							ID:        taskID + "-violation",
+							ID:        task.ID + "-violation",
 							Timestamp: time.Now(),
 							Type:      "AUDIT_SECURITY_VIOLATION",
 							Actor:     "prompt-guard",
-							Metadata:  map[string]interface{}{"task_id": taskID, "reason": violationOpt.Violations[0].Description},
+							Metadata:  map[string]interface{}{"task_id": task.ID, "reason": violationOpt.Reason},
 						})
 					}
 
 					toolLog.Warn("tool_output_security_violation_detected",
 						slog.String("tool", call.Name),
-						slog.String("rule", violationOpt.Violations[0].Category),
-						slog.String("description", violationOpt.Violations[0].Description),
+						slog.String("rule", "prompt_guard"),
+						slog.String("description", violationOpt.Reason),
 					)
-					return "", fmt.Errorf("security_violation_tool_output: %s", violationOpt.Violations[0].Description)
+					return "", fmt.Errorf("security_violation_tool_output: %s", violationOpt.Reason)
 				}
 			}
 		}
