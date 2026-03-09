@@ -45,3 +45,22 @@ func TestChainManager_AppendLinkage(t *testing.T) {
 		t.Fatalf("cryptographic broken link detected between blocks 0 and 1")
 	}
 }
+
+func TestChainManager_VerifyChain(t *testing.T) {
+	cm := NewChainManager()
+	cm.Append(AuditEvent{Type: "EVENT_1"})
+	cm.Append(AuditEvent{Type: "EVENT_2"})
+
+	ok, err := cm.VerifyChain()
+	if !ok || err != nil {
+		t.Fatalf("Expected valid, untampered chain to verify")
+	}
+
+	// Tamper!
+	cm.blocks[1].Event.Actor = "hacker"
+
+	ok, err = cm.VerifyChain()
+	if ok || err == nil {
+		t.Fatalf("Expected VerifyChain to detect deep-link tampering")
+	}
+}
