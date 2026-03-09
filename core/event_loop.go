@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fzihak/aethercore/core/audit"
 	"github.com/fzihak/aethercore/core/security"
 )
 
@@ -49,6 +50,7 @@ type Engine struct {
 	taskPool      sync.Pool
 	resultPool    sync.Pool
 	guard         security.PromptGuard
+	audit         audit.AuditLogger
 }
 
 // NewEngine initializes the core event loop with bounded goroutines.
@@ -85,6 +87,12 @@ func (e *Engine) WithSandbox(client *SandboxClient) *Engine {
 // RegisterTool adds a tool to the engine's ephemeral registry.
 func (e *Engine) RegisterTool(t Tool) error {
 	return e.tools.Register(t)
+}
+
+// WithAuditLogger attaches the cryptographic audit sidecar to record all activities immutably.
+func (e *Engine) WithAuditLogger(l audit.AuditLogger) *Engine {
+	e.audit = l
+	return e
 }
 
 // Start boots the worker pool. Sub-50ms target for Pico Mode.
