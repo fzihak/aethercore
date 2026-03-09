@@ -18,6 +18,7 @@ func NewRegexScanner() *RegexScanner {
 		compiledPatterns = map[string]*regexp.Regexp{
 			"SYSTEM_PROMPT_LEAK":  regexp.MustCompile(`(?i)(reveal|show|print|output)\s+(your\s+)?(system\s+)?(prompt|instructions)`),
 			"IGNORE_INSTRUCTIONS": regexp.MustCompile(`(?i)ignore\s+(all\s+)?(previous\s+)?(instructions|directions|rules)`),
+			"ROLEPLAY_JAILBREAK":  regexp.MustCompile(`(?i)(you\s+are\s+now|act\s+as\s+a)\s+(dan|do\s+anything\s+now|developer\s+mode|unrestricted)`),
 		}
 	})
 	return &RegexScanner{}
