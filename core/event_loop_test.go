@@ -3,10 +3,12 @@ package core
 import (
 	"context"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/fzihak/aethercore/core/audit"
+	"github.com/fzihak/aethercore/core/tools"
 )
 
 // MockLLMAdapter provides a dummy LLM for testing.
@@ -60,6 +62,78 @@ func TestEventLoopWorkerLimits(t *testing.T) {
 	}
 
 	engine.Stop()
+}
+
+type MockPicoLLMAdapter struct {
+	Responses []string
+	CallCount int
+}
+
+func (m *MockPicoLLMAdapter) Generate(_ context.Context, systemPrompt, userInput string) (string, error) {
+	if m.CallCount < len(m.Responses) {
+		resp := m.Responses[m.CallCount]
+		m.CallCount++
+		return resp, nil
+	}
+	return "Default Mock Response", nil
+}
+
+func (m *MockPicoLLMAdapter) GenerateWithTools(_ context.Context, messages []Message, tools []ToolManifest) (LLMResponse, error) {
+	if m.CallCount < len(m.Responses) {
+		resp := m.Responses[m.CallCount]
+		m.CallCount++
+		return LLMResponse{Content: resp}, nil
+	}
+	return LLMResponse{Content: "Default Mock Content with Tools"}, nil
+}
+
+func (m *MockPicoLLMAdapter) Name() string {
+	return "MockPico"
+}
+
+func TestEngine_PicoMode(t *testing.T) {
+	adapter := &MockPicoLLMAdapter{}
+	adapter.Responses = []string{`{"action": "Final Answer", "action_input": "42"}`}
+
+	al := &MockAuditLogger{}
+	engine := NewEngine(adapter, 1, 1).WithAuditLogger(al)
+
+	if err := engine.RegisterTool(&tools.SysInfoTool{}); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
+
+	engine.Start()
+	defer engine.Stop()
+
+	task := &Task{
+		ID:        "pico_test",
+		System:    "You are a helpful assistant.",
+		Input:     "What is 2+2?",
+		CreatedAt: time.Now(),
+	}
+
+	err := engine.Submit(task)
+	if err != nil {
+		t.Fatalf("Failed to submit task: %v", err)
+	}
+
+	res := <-engine.Results()
+	if res.Error != nil {
+		t.Fatalf("Expected success, got error: %v", res.Error)
+	}
+	if !strings.Contains(res.Output, "42") {
+		t.Errorf("Expected final answer 42, got: %s", res.Output)
+	}
+
+	foundReq := false
+	for _, e := range al.Events {
+		if e.Type == "AUDIT_LLM_REQUEST" {
+			foundReq = true
+		}
+	}
+	if !foundReq {
+		t.Errorf("Expected AUDIT_LLM_REQUEST event but not found in log")
+	}
 }
 
 func TestEventLoopGoroutineLeak(t *testing.T) {
