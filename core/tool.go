@@ -69,8 +69,15 @@ func (r *ToolRegistry) Register(t Tool) error {
 		manifestBytes, _ := json.Marshal(m)
 		ok, err := r.verifier.Verify(manifestBytes, "")
 		if !ok || err != nil {
-			slog.Warn("tool_verification_failed", slog.String("tool", m.Name), slog.String("error", err.Error()))
-			return fmt.Errorf("cryptographic verification failed for tool %s: %w", m.Name, err)
+			errStr := "signature verification rejected"
+			if err != nil {
+				errStr = err.Error()
+			}
+			slog.Warn("tool_verification_failed", slog.String("tool", m.Name), slog.String("error", errStr))
+			if err != nil {
+				return fmt.Errorf("cryptographic verification failed for tool %s: %w", m.Name, err)
+			}
+			return fmt.Errorf("cryptographic verification failed for tool %s: %s", m.Name, errStr)
 		}
 	}
 

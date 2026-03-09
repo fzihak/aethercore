@@ -211,7 +211,7 @@ func runToolNative(toolName, args string) {
 	core.Logger().Info("native_tool_execution_started", slog.String("tool", toolName))
 	start := time.Now()
 
-	registry := core.NewToolRegistry()
+	registry := core.NewToolRegistry(nil)
 	if err := registry.Register(&tools.SysInfoTool{}); err != nil {
 		core.Logger().Error("tool_registration_failed", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -239,7 +239,7 @@ func runToolNative(toolName, args string) {
 }
 
 func listToolsCmd() {
-	registry := core.NewToolRegistry()
+	registry := core.NewToolRegistry(nil)
 	if err := registry.Register(&tools.SysInfoTool{}); err != nil {
 		log.Fatalf("Tool registration failed: %v", err)
 	}

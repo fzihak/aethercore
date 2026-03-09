@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -235,6 +236,16 @@ func (e *Engine) executeEphemeral(t *Task) (string, error) {
 	}
 
 	for iteration := range maxAgentIterations {
+		if e.audit != nil {
+			_ = e.audit.LogEvent(ctx, audit.AuditEvent{
+				ID:        t.ID + "-req",
+				Timestamp: time.Now(),
+				Type:      "AUDIT_LLM_REQUEST",
+				Actor:     "engine",
+				Metadata:  map[string]interface{}{"task_id": t.ID, "messages_count": len(messages)},
+			})
+		}
+
 		resp, err := e.adapter.GenerateWithTools(ctx, messages, manifests)
 		if err != nil {
 			return "", fmt.Errorf("llm_iter_%d: %w", iteration, err)
@@ -255,23 +266,21 @@ func (e *Engine) executeEphemeral(t *Task) (string, error) {
 		// Execute tools, feed results back
 		var toolResults []ToolResultMessage
 		for _, call := range resp.ToolCalls {
-			result, execErr := e.dispatchTool(ctx, call)
+			result, execErr := e.dispatchTool(ctx, t.ID, call)
 
 			var contentStr string
 			if execErr != nil {
+				if strings.Contains(execErr.Error(), "security_violation") {
+					return "", execErr
+				}
 				contentStr = execErr.Error()
 			} else {
 				contentStr = result
 			}
 
-			guardRes := e.guard.Scan(ctx, contentStr, security.GuardConfig{})
-			if !guardRes.IsSafe {
-				return "", fmt.Errorf("security_violation_tool_output: %s", guardRes.Violations[0].Description)
-			}
-
 			toolResults = append(toolResults, ToolResultMessage{
 				ToolCallID: call.ID,
-				Content:    result,
+				Content:    contentStr,
 				IsError:    execErr != nil,
 			})
 		}
@@ -286,18 +295,18 @@ func (e *Engine) executeEphemeral(t *Task) (string, error) {
 }
 
 // dispatchTool dynamically resolves execution to Layer 0 (internal) or Layer 2 (sandbox).
-func (e *Engine) dispatchTool(ctx context.Context, call ToolCall) (string, error) {
+func (e *Engine) dispatchTool(ctx context.Context, taskID string, call ToolCall) (string, error) {
 	tool, err := e.tools.Get(call.Name)
 	if err == nil {
 		toolLog := WithComponent("tool_executor").With(slog.String("tool_name", call.Name))
 		toolLog.Debug("tool_execution_started", slog.String("arguments", call.Arguments))
 		if e.audit != nil {
 			_ = e.audit.LogEvent(ctx, audit.AuditEvent{
-				ID:        task.ID + "-tool-exec",
+				ID:        taskID + "-tool-exec",
 				Timestamp: time.Now(),
 				Type:      "AUDIT_TOOL_EXECUTE",
 				Actor:     "engine",
-				Metadata:  map[string]interface{}{"task_id": task.ID, "tool": call.Name},
+				Metadata:  map[string]interface{}{"task_id": taskID, "tool": call.Name},
 			})
 		}
 		toolStart := time.Now()
@@ -307,24 +316,24 @@ func (e *Engine) dispatchTool(ctx context.Context, call ToolCall) (string, error
 
 		if execErr == nil {
 			if e.guard != nil {
-				violationOpt := e.guard.Scan(string(res))
-				if violationOpt != nil {
+				violationOpt := e.guard.Scan(ctx, string(res), security.GuardConfig{})
+				if !violationOpt.IsSafe {
 					if e.audit != nil {
 						_ = e.audit.LogEvent(ctx, audit.AuditEvent{
-							ID:        task.ID + "-violation",
+							ID:        taskID + "-violation",
 							Timestamp: time.Now(),
 							Type:      "AUDIT_SECURITY_VIOLATION",
 							Actor:     "prompt-guard",
-							Metadata:  map[string]interface{}{"task_id": task.ID, "reason": violationOpt.Reason},
+							Metadata:  map[string]interface{}{"task_id": taskID, "reason": violationOpt.Violations[0].Description},
 						})
 					}
 
 					toolLog.Warn("tool_output_security_violation_detected",
 						slog.String("tool", call.Name),
-						slog.String("rule", "prompt_guard"),
-						slog.String("description", violationOpt.Reason),
+						slog.String("rule", violationOpt.Violations[0].Category),
+						slog.String("description", violationOpt.Violations[0].Description),
 					)
-					return "", fmt.Errorf("security_violation_tool_output: %s", violationOpt.Reason)
+					return "", fmt.Errorf("security_violation_tool_output: %s", violationOpt.Violations[0].Description)
 				}
 			}
 		}

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/fzihak/aethercore/core/audit"
-	"github.com/fzihak/aethercore/core/tools"
 )
 
 // MockLLMAdapter provides a dummy LLM for testing.
@@ -91,6 +90,16 @@ func (m *MockPicoLLMAdapter) Name() string {
 	return "MockPico"
 }
 
+type MockSysInfoTool struct{}
+
+func (m *MockSysInfoTool) Name() string { return "sys_info" }
+func (m *MockSysInfoTool) Execute(ctx context.Context, args string) (string, error) {
+	return "mock info", nil
+}
+func (m *MockSysInfoTool) Manifest() ToolManifest {
+	return ToolManifest{Name: "sys_info"}
+}
+
 func TestEngine_PicoMode(t *testing.T) {
 	adapter := &MockPicoLLMAdapter{}
 	adapter.Responses = []string{`{"action": "Final Answer", "action_input": "42"}`}
@@ -98,7 +107,7 @@ func TestEngine_PicoMode(t *testing.T) {
 	al := &MockAuditLogger{}
 	engine := NewEngine(adapter, 1, 1).WithAuditLogger(al)
 
-	if err := engine.RegisterTool(&tools.SysInfoTool{}); err != nil {
+	if err := engine.RegisterTool(&MockSysInfoTool{}); err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
 
