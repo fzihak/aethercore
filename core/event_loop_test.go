@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/fzihak/aethercore/core/audit"
 )
 
 // MockLLMAdapter provides a dummy LLM for testing.
@@ -139,5 +141,33 @@ func TestEngine_MaliciousToolOutputRejection(t *testing.T) {
 
 	if res.Error == nil {
 		t.Errorf("Expected tool output string to trigger PromptGuard rejection")
+	}
+}
+
+type MockAuditLogger struct {
+	Events []audit.AuditEvent
+}
+
+func (m *MockAuditLogger) LogEvent(ctx context.Context, ev audit.AuditEvent) error {
+	m.Events = append(m.Events, ev)
+	return nil
+}
+
+func (m *MockAuditLogger) VerifyChain() (bool, error) {
+	return true, nil
+}
+
+func TestEngine_AuditLogEmission(t *testing.T) {
+	al := &MockAuditLogger{}
+	engine := NewEngine(&MockLLMAdapter{}, 1, 1).WithAuditLogger(al)
+
+	engine.Start()
+	engine.Stop()
+
+	if len(al.Events) == 0 {
+		t.Fatalf("expected AUDIT_ENGINE_BOOT event to be fired during start")
+	}
+	if al.Events[0].Type != "AUDIT_ENGINE_BOOT" {
+		t.Errorf("expected engine boot event, got %s", al.Events[0].Type)
 	}
 }
