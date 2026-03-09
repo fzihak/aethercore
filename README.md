@@ -27,14 +27,14 @@
 
 ### 🚀 V1.0 Launch Progress (Real-Time)
 
-![Progress](https://img.shields.io/badge/Kernel_Completion-Day_10%2F30-00ADD8)
+![Progress](https://img.shields.io/badge/Kernel_Completion-Day_28%2F30-00ADD8)
 
 | Milestone                                     | Status                     | ETA       |
 | :-------------------------------------------- | :------------------------- | :-------- |
 | **Week 1 (Days 1-7):** Foundation & Telemetry | ✅ Completed (Day 7/7)     | Done      |
 | **Week 2 (Days 8-14):** The Rust Shield       | 🟡 In Progress (Day 10/14) | Near Term |
 | **Week 3 (Days 15-21):** Distributed Mesh     | 🔴 Untouched               | Pending   |
-| **Week 4 (Days 22-28):** Plugin Ecosystem     | 🔴 Untouched               | Pending   |
+| **Week 4 (Days 22-28):** Plugin Ecosystem     | ✅ Completed (Day 28/28)   | Done      |
 
 <!-- Add your terminal demo GIF here -->
 <!-- <img src="docs/assets/demo.gif" width="700"> -->
@@ -111,9 +111,11 @@ chmod +x aether
 
 | Doc                                             | Description                 |
 | ----------------------------------------------- | --------------------------- |
-| [Architecture Whitepaper](docs/architecture.md) | Full system design          |
+| [Architecture Guide](docs/architecture.md)      | Full system design          |
 | [Security Model](docs/security.md)              | Zero trust, sandbox, crypto |
+| [Security Whitepaper](AETHERCORE_WHITEPAPER.md) | Math & security proofs      |
 | [Plugin SDK](sdk/README.md)                     | Build your own tools        |
+| [API Documentation](api_docs/README.md)         | Kernel Go interfaces        |
 | [Benchmarks](benchmarks/README.md)              | Performance results         |
 | [Contributing](CONTRIBUTING.md)                 | How to contribute           |
 
