@@ -291,6 +291,19 @@ func (e *Engine) dispatchTool(ctx context.Context, call ToolCall) (string, error
 	if err == nil {
 		toolLog := WithComponent("tool_executor").With(slog.String("tool_name", call.Name))
 		toolLog.Debug("tool_execution_started", slog.String("arguments", call.Arguments))
+		if e.audit != nil {
+			taskID, ok := ctx.Value(TaskIDContextKey).(string)
+			if !ok {
+				taskID = "unknown" // Fallback if task ID not in context
+			}
+			_ = e.audit.LogEvent(ctx, audit.AuditEvent{
+				ID:        taskID + "-tool-exec",
+				Timestamp: time.Now(),
+				Type:      "AUDIT_TOOL_EXECUTE",
+				Actor:     "engine",
+				Metadata:  map[string]interface{}{"task_id": taskID, "tool": call.Name},
+			})
+		}
 		toolStart := time.Now()
 
 		res, execErr := tool.Execute(ctx, call.Arguments)
