@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -51,4 +52,24 @@ func (c *ChainManager) Append(event AuditEvent) Block {
 	newBlock.Hash = c.calculateHash(newBlock)
 	c.blocks = append(c.blocks, newBlock)
 	return newBlock
+}
+
+// VerifyChain performs a full O(N) sweep to ensure absolutely zero historical tampering of the chain data.
+func (c *ChainManager) VerifyChain() (bool, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	for i := 1; i < len(c.blocks); i++ {
+		prev := c.blocks[i-1]
+		curr := c.blocks[i]
+
+		if curr.PreviousHash != prev.Hash {
+			return false, errors.New("broken cryptographic link detected")
+		}
+
+		if c.calculateHash(curr) != curr.Hash {
+			return false, errors.New("block payload tampering detected")
+		}
+	}
+	return true, nil
 }
