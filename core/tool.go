@@ -63,6 +63,15 @@ func (r *ToolRegistry) Register(t Tool) error {
 		return ErrNilTool
 	}
 
+	m := t.Manifest()
+	if r.verifier != nil {
+		manifestBytes, _ := json.Marshal(m)
+		ok, err := r.verifier.Verify(manifestBytes, "")
+		if !ok || err != nil {
+			return fmt.Errorf("cryptographic verification failed for tool %s: %w", m.Name, err)
+		}
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
