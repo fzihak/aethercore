@@ -19,3 +19,12 @@ func TestManifestValidator_MissingSignature(t *testing.T) {
 		t.Errorf("Expected error for missing signature")
 	}
 }
+
+func TestManifestValidator_InvalidHexEncoding(t *testing.T) {
+	kr := NewKeyRing()
+	validator := NewManifestValidator(kr)
+	ok, err := validator.Verify([]byte("{}"), "not-a-hex-string!")
+	if ok || err == nil {
+		t.Errorf("Expected error for invalid hex encoding")
+	}
+}
