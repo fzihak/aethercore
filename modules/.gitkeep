@@ -1,3 +1,0 @@
-# Layer 1 — Capability Modules
-# Scheduler, local memory, metrics, logging, distributed mode.
-# Feature-flag loaded via build tags: aether-lite, aether-net, aether-sandbox, aether-distributed.
