@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/fzihak/aethercore/core/security"
 )
 
 // Inviolable Rule: Layer 0 strictly uses Go stdlib ONLY.
@@ -44,13 +46,15 @@ type Tool interface {
 
 // ToolRegistry manages the available tools in an ephemeral execution.
 type ToolRegistry struct {
-	mu    sync.RWMutex
-	tools map[string]Tool
+	mu       sync.RWMutex
+	tools    map[string]Tool
+	verifier security.ToolVerifier
 }
 
-func NewToolRegistry() *ToolRegistry {
+func NewToolRegistry(verifier security.ToolVerifier) *ToolRegistry {
 	return &ToolRegistry{
-		tools: make(map[string]Tool),
+		tools:    make(map[string]Tool),
+		verifier: verifier,
 	}
 }
 

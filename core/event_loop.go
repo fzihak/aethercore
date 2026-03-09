@@ -55,7 +55,7 @@ type Engine struct {
 func NewEngine(adapter LLMAdapter, workerCount, queueSize int) *Engine {
 	e := &Engine{
 		adapter:     adapter,
-		tools:       NewToolRegistry(),
+		tools:       NewToolRegistry(nil),
 		taskQueue:   make(chan *Task, queueSize),
 		resultQueue: make(chan *Result, queueSize),
 		workerCount: workerCount,
