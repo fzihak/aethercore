@@ -28,3 +28,17 @@ func TestManifestValidator_InvalidHexEncoding(t *testing.T) {
 		t.Errorf("Expected error for invalid hex encoding")
 	}
 }
+
+func TestManifestValidator_CanonicalJSONSerialization(t *testing.T) {
+	kr := NewKeyRing()
+	validator := NewManifestValidator(kr)
+	
+	raw := []byte(`{"z":1,"a":2}`)
+	canonical, err := validator.canonicalize(raw)
+	if err != nil {
+		t.Errorf("Expected canonicalize to succeed")
+	}
+	if string(canonical) != `{"a":2,"z":1}` {
+		t.Errorf("Expected strictly alphabetical JSON keys")
+	}
+}
