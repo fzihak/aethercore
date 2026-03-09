@@ -52,3 +52,22 @@ func TestLocalAppender_ConcurrentWriteSafety(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestLocalAppender_Rotation(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "audit.log")
+	appender := NewLocalAppender(tmpFile)
+	appender.RotationLimitBytes = 100
+	_ = appender.Open()
+
+	b := Block{Index: 1, PreviousHash: "000"}
+	appender.AppendBlock(b)
+	appender.AppendBlock(b)
+	appender.AppendBlock(b)
+	appender.Close()
+
+	rotated := filepath.Join(tmpDir, "audit.log.1")
+	if _, err := os.Stat(rotated); err != nil {
+		t.Fatalf("expected rotated file audit.log.1 to exist")
+	}
+}
