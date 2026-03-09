@@ -1,6 +1,7 @@
 package security
 
 import (
+	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -26,12 +27,29 @@ func (m *ManifestValidator) Verify(manifestJSON []byte, signatureHex string) (bo
 	if signatureHex == "" {
 		return false, errors.New("missing signature")
 	}
-	_, err := hex.DecodeString(signatureHex)
+	sigBytes, err := hex.DecodeString(signatureHex)
 	if err != nil {
 		return false, err
 	}
-	if _, err := m.canonicalize(manifestJSON); err != nil {
+	if len(sigBytes) != ed25519.SignatureSize {
+		return false, errors.New("invalid signature length")
+	}
+	
+	canonicalMsg, err := m.canonicalize(manifestJSON)
+	if err != nil {
 		return false, err
 	}
-	return true, nil
+
+	trustedKeys := m.keys.Keys()
+	if len(trustedKeys) == 0 {
+		return false, errors.New("no trusted public keys loaded")
+	}
+
+	for _, pubKey := range trustedKeys {
+		if ed25519.Verify(pubKey, canonicalMsg, sigBytes) {
+			return true, nil
+		}
+	}
+
+	return false, errors.New("signature verification failed against all trusted keys")
 }
