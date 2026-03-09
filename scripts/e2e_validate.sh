@@ -100,3 +100,4 @@ fi
 
 echo ""
 echo "=== ALL TESTS COMPLETED ==="
+echo "PHASE 1 SECURE CORE: VALIDATED"
