@@ -16,3 +16,17 @@ func TestKeyRing_LoadValidEd25519PublicKey(t *testing.T) {
 		t.Errorf("Expected loading invalid PEM to fail")
 	}
 }
+
+func TestKeyRing_LoadMalformedPublicKey(t *testing.T) {
+	kr := NewKeyRing()
+	
+	// Valid PEM block but random data inside
+	pemData := `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+-----END PUBLIC KEY-----`
+
+	err := kr.LoadPEM([]byte(pemData))
+	if err == nil {
+		t.Errorf("Expected parsing garbage PKIX to fail")
+	}
+}
