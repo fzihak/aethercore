@@ -1,21 +1,50 @@
-# .gitignore
+# .gitignore — AetherCore
 
-# Binaries
+# ────────────────────────────────────────────────────────────────
+# Go Binaries & Build Outputs
+# ────────────────────────────────────────────────────────────────
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 /aether
-/aether.exe
+dist/
 
 # Go modules
 vendor/
-# (We don't commit vendor folder per strict rules)
 
-# Generated files
-# *.pb.go
-# *_grpc.pb.go
-dist/
+# ────────────────────────────────────────────────────────────────
+# Rust Build Outputs
+# ────────────────────────────────────────────────────────────────
+runtime/target/
+sdk/rust/target/
+
+# ────────────────────────────────────────────────────────────────
+# Test & Coverage Artifacts
+# ────────────────────────────────────────────────────────────────
+coverage
 coverage.txt
 coverage.out
+coverage.html
 
+# ────────────────────────────────────────────────────────────────
+# Lint, Benchmark & Test Output Files
+# ────────────────────────────────────────────────────────────────
+lint_results.txt
+lint.txt
+bench_results.txt
+test_output.txt
+
+# ────────────────────────────────────────────────────────────────
+# Log Files
+# ────────────────────────────────────────────────────────────────
+*.log
+tmp.log
+
+# ────────────────────────────────────────────────────────────────
 # Editor and OS
+# ────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
@@ -23,19 +52,17 @@ coverage.out
 .DS_Store
 Thumbs.db
 
+# ────────────────────────────────────────────────────────────────
 # Env and Secrets
+# ────────────────────────────────────────────────────────────────
 .env
 .env.*
 *.pem
 *.key
 
-# Generated artifacts
-lint_results.txt
-lint.txt
-bench_results.txt
-test_output.txt
-
+# ────────────────────────────────────────────────────────────────
 # Local Data
+# ────────────────────────────────────────────────────────────────
 data/
 *.db
 *.sqlite

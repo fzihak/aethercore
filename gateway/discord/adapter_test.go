@@ -26,7 +26,7 @@ func (e *echoModule) Manifest() sdk.ModuleManifest {
 	}
 }
 func (e *echoModule) OnStart(_ context.Context, _ *sdk.ModuleContext) error { return nil }
-func (e *echoModule) OnStop(_ context.Context) error                         { return nil }
+func (e *echoModule) OnStop(_ context.Context) error                        { return nil }
 func (e *echoModule) HandleTask(_ context.Context, t *sdk.ModuleTask) (*sdk.ModuleResult, error) {
 	return &sdk.ModuleResult{TaskID: t.ID, Output: "echo:" + t.Input}, nil
 }
@@ -190,7 +190,7 @@ func (s *spyModule) Manifest() sdk.ModuleManifest {
 	return sdk.ModuleManifest{Name: "spy", Description: "Captures task metadata", Version: "0.1.0", Author: "test"}
 }
 func (s *spyModule) OnStart(_ context.Context, _ *sdk.ModuleContext) error { return nil }
-func (s *spyModule) OnStop(_ context.Context) error                         { return nil }
+func (s *spyModule) OnStop(_ context.Context) error                        { return nil }
 func (s *spyModule) HandleTask(_ context.Context, t *sdk.ModuleTask) (*sdk.ModuleResult, error) {
 	*s.meta = t.Metadata
 	return &sdk.ModuleResult{TaskID: t.ID, Output: "ok"}, nil

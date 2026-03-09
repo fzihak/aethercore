@@ -76,8 +76,8 @@ type GatewayIdentify struct {
 
 // ReadyEvent is the data payload for the READY dispatch event.
 type ReadyEvent struct {
-	V    int    `json:"v"`
-	User *User  `json:"user"`
+	V    int   `json:"v"`
+	User *User `json:"user"`
 }
 
 // CreateMessageRequest is the body for the REST create-message endpoint.

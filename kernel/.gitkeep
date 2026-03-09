@@ -1,0 +1,4 @@
+# Layer 3 — Mesh Orchestration
+# Peer discovery, distributed task routing, consensus primitives.
+# Currently implemented in /core/mesh_*.go as part of Layer 0 monolith.
+# Will be refactored here when Layer 3 becomes independently deployable.

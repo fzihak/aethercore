@@ -1,0 +1,3 @@
+# Real-World Use Case Examples
+# Log summarizer, code reviewer, data pipeline, and other demo applications.
+# Each example should be a self-contained module buildable with the AetherCore SDK.

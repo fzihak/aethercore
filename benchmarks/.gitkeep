@@ -1,0 +1,3 @@
+# Public Benchmark Suite
+# Reproducible, automated, CI-integrated performance benchmarks.
+# Core benchmarks currently live in core/event_loop_bench_test.go and scripts/benchmark.sh.

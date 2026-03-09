@@ -1,0 +1,3 @@
+# Official Plugin Examples
+# Plugin manifest specifications and reference WASM modules.
+# Plugins execute inside the Layer 2 Rust Sandbox with capability-gated permissions.
