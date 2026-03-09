@@ -10,3 +10,12 @@ func TestManifestValidator_Verify(t *testing.T) {
 		t.Errorf("Expected true for now")
 	}
 }
+
+func TestManifestValidator_MissingSignature(t *testing.T) {
+	kr := NewKeyRing()
+	validator := NewManifestValidator(kr)
+	ok, err := validator.Verify([]byte("{}"), "")
+	if ok || err == nil {
+		t.Errorf("Expected error for missing signature")
+	}
+}
