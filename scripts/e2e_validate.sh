@@ -62,6 +62,14 @@ else
     echo "FAIL: Prompt Injection verification skipped"
 fi
 
+echo "--- Test 4.5: Unverified Tool Execution Block"
+RESULT=$($AETHER_BIN -kernel run -tool "unsigned_mock" 2>&1) || true
+if echo "$RESULT" | grep -iq "tool_not_found"; then
+    echo "PASS: Unverified tool blocked securely off runtime"
+else
+    echo "FAIL: Unverified tool executed"
+fi
+
 echo "--- Test 5: Memory Constraints"
 if command -v ps > /dev/null; then
     # Start a background task strictly to measure
