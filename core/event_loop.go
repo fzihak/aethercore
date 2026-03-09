@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/fzihak/aethercore/core/security"
 )
 
 // Inviolable Rule: Layer 0 strictly uses Go stdlib ONLY.
@@ -46,6 +48,7 @@ type Engine struct {
 	stopOnce      sync.Once
 	taskPool      sync.Pool
 	resultPool    sync.Pool
+	guard         security.PromptGuard
 }
 
 // NewEngine initializes the core event loop with bounded goroutines.
@@ -57,6 +60,10 @@ func NewEngine(adapter LLMAdapter, workerCount, queueSize int) *Engine {
 		resultQueue: make(chan *Result, queueSize),
 		workerCount: workerCount,
 		quit:        make(chan struct{}),
+		guard: security.NewOrchestratorGuard(
+			security.NewRegexScanner(),
+			security.NewSemanticAnalyzer(),
+		),
 	}
 	e.taskPool.New = func() interface{} {
 		return &Task{}
