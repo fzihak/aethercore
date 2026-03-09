@@ -97,6 +97,15 @@ func (e *Engine) WithAuditLogger(l audit.AuditLogger) *Engine {
 
 // Start boots the worker pool. Sub-50ms target for Pico Mode.
 func (e *Engine) Start() {
+	if e.audit != nil {
+		_ = e.audit.LogEvent(context.Background(), audit.AuditEvent{
+			ID:        "sys-boot",
+			Timestamp: time.Now(),
+			Type:      "AUDIT_ENGINE_BOOT",
+			Actor:     "system",
+			Metadata:  map[string]interface{}{"worker_count": e.workerCount},
+		})
+	}
 	for i := range e.workerCount {
 		e.wg.Add(1)
 		go e.worker(i)
