@@ -29,7 +29,7 @@ func (o *Orchestrator) Execute(ctx context.Context, task string) (string, error)
 func (o *Orchestrator) GenerateWithTools(ctx context.Context, messages []Message, tools []ToolManifest) (LLMResponse, error) {
 	// For now, we use the first healthy provider from the router for tool use.
 	// This will be expanded to use a specialized router for tool-calling capabilities.
-	provider, err := o.router.Select(ctx, "tool_use_request")
+	_, err := o.router.Select(ctx, "tool_use_request")
 	if err != nil {
 		return LLMResponse{}, err
 	}
