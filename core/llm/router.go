@@ -29,4 +29,5 @@ type Provider interface {
 	Name() string
 	Status() Status
 	Priority() Priority
+	Execute(ctx context.Context, task string) (string, error)
 }
