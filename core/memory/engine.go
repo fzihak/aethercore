@@ -41,3 +41,27 @@ func (e *MemoryEngine) Record(ctx context.Context, msg llm.Message) error {
 
 	return e.storage.Put(ctx, entry)
 }
+
+// Recall retrieves short-term memory and relevant long-term memories for a given query.
+func (e *MemoryEngine) Recall(ctx context.Context, query string) ([]llm.Message, error) {
+	// 1. Start with short-term memory (most recent context)
+	combined := make([]llm.Message, len(e.shortTermMem))
+	copy(combined, e.shortTermMem)
+
+	// 2. Fetch relevant long-term memories via storage search
+	// In Layer 0, we use simple keyword matching for RAG-lite behavior.
+	entries, err := e.storage.Search(ctx, query, SearchOptions{Limit: 3})
+	if err != nil {
+		return combined, fmt.Errorf("long_term_recall_failed: %w", err)
+	}
+
+	// 3. Inject long-term memories as system context "reminders"
+	for _, entry := range entries {
+		combined = append(combined, llm.Message{
+			Role:    "system",
+			Content: fmt.Sprintf("[Memory Recall] %s", entry.Content),
+		})
+	}
+
+	return combined, nil
+}
