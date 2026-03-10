@@ -60,23 +60,34 @@ func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOpt
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var results []MemoryEntry
 	for _, entry := range s.data {
-		// Simple keyword match in content
-		if query != "" && !containsIgnoreCase(entry.Content, query) {
-			continue
-		}
+		// 1. Keyword match in content
+		match := query == "" || containsIgnoreCase(entry.Content, query)
 
-		// Filter by tags in metadata if provided
-		if len(opts.Tags) > 0 {
-			match := false
-			for _, tag := range opts.Tags {
-				if _, exists := entry.Metadata[tag]; exists {
+		// 2. Keyword match in metadata values
+		if !match && query != "" {
+			for _, val := range entry.Metadata {
+				if containsIgnoreCase(val, query) {
 					match = true
 					break
 				}
 			}
-			if !match {
+		}
+
+		if !match {
+			continue
+		}
+
+		// 3. Optional tag filter (must match specific keys)
+		if len(opts.Tags) > 0 {
+			tagMatch := false
+			for _, tag := range opts.Tags {
+				if _, exists := entry.Metadata[tag]; exists {
+					tagMatch = true
+					break
+				}
+			}
+			if !tagMatch {
 				continue
 			}
 		}
