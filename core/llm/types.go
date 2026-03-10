@@ -1,6 +1,18 @@
 package llm
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
+
+// Capability flags define what a tool is permitted to do.
+type Capability string
+
+const (
+	CapNetwork    Capability = "network"
+	CapFilesystem Capability = "filesystem"
+	CapState      Capability = "state"
+)
 
 // LLMAdapter defines the contract for any LLM provider used by the kernel.
 type LLMAdapter interface {
@@ -45,9 +57,12 @@ type TokenUsage struct {
 	TotalTokens      int
 }
 
-// ToolManifest is a placeholder for tool definitions (will be refined later)
+// ToolManifest defines the declarative capability-envelope for a tool.
 type ToolManifest struct {
-	Name        string
-	Description string
-	Parameters  interface{}
+	Name         string          `json:"name"`
+	Description  string          `json:"description"`
+	Parameters   json.RawMessage `json:"parameters"`
+	Capabilities []Capability    `json:"capabilities"`
+	MaxRuntimeMs int             `json:"max_runtime_ms"`
+	MemoryLimit  int             `json:"memory_limit_mb"`
 }

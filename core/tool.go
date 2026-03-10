@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/fzihak/aethercore/core/llm"
 	"github.com/fzihak/aethercore/core/security"
 )
 
@@ -19,29 +20,9 @@ var (
 	ErrToolNotFound   = errors.New("tool not found")
 )
 
-// Capability flags define what a tool is permitted to do.
-type Capability string
-
-const (
-	CapNetwork    Capability = "network"
-	CapFilesystem Capability = "filesystem"
-	CapState      Capability = "state"
-)
-
-// ToolManifest defines the declarative capability-envelope for a tool.
-// This is strictly enforced by the Kernel before the Tool executes.
-type ToolManifest struct {
-	Name         string          `json:"name"`
-	Description  string          `json:"description"`
-	Parameters   json.RawMessage `json:"parameters"` // JSON Schema for the tool parameters
-	Capabilities []Capability    `json:"capabilities"`
-	MaxRuntimeMs int             `json:"max_runtime_ms"`
-	MemoryLimit  int             `json:"memory_limit_mb"`
-}
-
 // Tool is the interface all in-process and sandboxed tools must implement.
 type Tool interface {
-	Manifest() ToolManifest
+	Manifest() llm.ToolManifest
 	Execute(ctx context.Context, args string) (string, error)
 }
 
@@ -105,11 +86,11 @@ func (r *ToolRegistry) Get(name string) (Tool, error) {
 	return t, nil
 }
 
-func (r *ToolRegistry) Manifests() []ToolManifest {
+func (r *ToolRegistry) Manifests() []llm.ToolManifest {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	manifests := make([]ToolManifest, 0, len(r.tools))
+	manifests := make([]llm.ToolManifest, 0, len(r.tools))
 	for _, t := range r.tools {
 		manifests = append(manifests, t.Manifest())
 	}
