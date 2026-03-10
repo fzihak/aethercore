@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"time"
 )
 
@@ -19,4 +20,13 @@ type SearchOptions struct {
 	MinScore  float64
 	StartTime time.Time
 	EndTime   time.Time
+}
+
+// Storage defines the interface for low-level memory persistence (e.g. ZestDB).
+type Storage interface {
+	Put(ctx context.Context, entry MemoryEntry) error
+	Get(ctx context.Context, id string) (MemoryEntry, error)
+	Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error)
+	Delete(ctx context.Context, id string) error
+	Close() error
 }
