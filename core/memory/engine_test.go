@@ -35,6 +35,10 @@ func TestMemoryEngine_Recall(t *testing.T) {
 		t.Fatalf("failed to recall: %v", err)
 	}
 
+	for i, m := range messages {
+		t.Logf("Message %d: [%s] %s", i, m.Role, m.Content)
+	}
+
 	// Should have 2 short-term + some long-term (if matched)
 	if len(messages) < 2 {
 		t.Errorf("expected at least 2 messages, got %d", len(messages))
