@@ -19,9 +19,10 @@ func NewRetryingProvider(base Provider, maxRetries int) *RetryingProvider {
 	}
 }
 
-func (p *RetryingProvider) Name() string       { return p.base.Name() }
-func (p *RetryingProvider) Status() Status     { return p.base.Status() }
-func (p *RetryingProvider) Priority() Priority { return p.base.Priority() }
+func (p *RetryingProvider) Name() string            { return p.base.Name() }
+func (p *RetryingProvider) Status() Status          { return p.base.Status() }
+func (p *RetryingProvider) Priority() Priority      { return p.base.Priority() }
+func (p *RetryingProvider) Metadata() ModelMetadata { return p.base.Metadata() }
 
 func (p *RetryingProvider) Execute(ctx context.Context, task string) (string, error) {
 	var lastErr error
