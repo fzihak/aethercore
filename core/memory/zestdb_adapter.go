@@ -60,6 +60,7 @@ func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOpt
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	var results []MemoryEntry
 	for _, entry := range s.data {
 		// 1. Keyword match in content
 		match := query == "" || containsIgnoreCase(entry.Content, query)
