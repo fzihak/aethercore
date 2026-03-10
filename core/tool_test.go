@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"testing"
+
+	"github.com/fzihak/aethercore/core/llm"
 )
 
 type MockVerifier struct {
@@ -15,7 +17,7 @@ func (m *MockVerifier) Verify(manifestJSON []byte, signatureHex string) (bool, e
 
 type DummyTool struct{}
 
-func (d *DummyTool) Manifest() ToolManifest                                   { return ToolManifest{Name: "dummy"} }
+func (d *DummyTool) Manifest() llm.ToolManifest                               { return llm.ToolManifest{Name: "dummy"} }
 func (d *DummyTool) Execute(ctx context.Context, args string) (string, error) { return "", nil }
 
 func TestToolRegistry_BlocksUnverified(t *testing.T) {
