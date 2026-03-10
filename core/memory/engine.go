@@ -65,3 +65,20 @@ func (e *MemoryEngine) Recall(ctx context.Context, query string) ([]llm.Message,
 
 	return combined, nil
 }
+
+// Summarize performs a context compression by merging older short-term memories.
+// In Layer 0, this is a placeholder that simulates token-limit-driven summarization.
+func (e *MemoryEngine) Summarize(ctx context.Context) error {
+	if len(e.shortTermMem) <= 3 {
+		return nil
+	}
+
+	// Heuristic: Take the oldest half and "compress" them into a single system message
+	summaryMsg := llm.Message{
+		Role:    "system",
+		Content: "[Context Summary] The conversation began with objective initialization and tool discovery.",
+	}
+
+	e.shortTermMem = append([]llm.Message{summaryMsg}, e.shortTermMem[len(e.shortTermMem)/2:]...)
+	return nil
+}
