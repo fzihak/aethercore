@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/fzihak/aethercore/core/llm"
 )
@@ -28,6 +29,7 @@ func TestMemoryEngine_Recall(t *testing.T) {
 
 	ctx := context.Background()
 	_ = engine.Record(ctx, llm.Message{Role: "user", Content: "AetherCore is a security sandbox."})
+	time.Sleep(1 * time.Millisecond) // Ensure unique timestamp ID
 	_ = engine.Record(ctx, llm.Message{Role: "assistant", Content: "Understood."})
 
 	messages, err := engine.Recall(ctx, "security")
