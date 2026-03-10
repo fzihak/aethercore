@@ -18,9 +18,9 @@ func (m *MockLLMAdapter) Generate(_ context.Context, systemPrompt, userInput str
 	return "Mock Response", nil
 }
 
-func (m *MockLLMAdapter) GenerateWithTools(_ context.Context, messages []llm.Message, tools []llm.ToolManifest) (llm.LLMResponse, error) {
+func (m *MockLLMAdapter) GenerateWithTools(_ context.Context, messages []llm.Message, tools []llm.llm.ToolManifest) (llm.llm.LLMResponse, error) {
 	// Dummy response for event loop test
-	return llm.LLMResponse{
+	return llm.llm.LLMResponse{
 		Content: "Mock Content with Tools",
 	}, nil
 }
@@ -78,13 +78,13 @@ func (m *MockPicoLLMAdapter) Generate(_ context.Context, systemPrompt, userInput
 	return "Default Mock Response", nil
 }
 
-func (m *MockPicoLLMAdapter) GenerateWithTools(_ context.Context, messages []Message, tools []llm.ToolManifest) (LLMResponse, error) {
+func (m *MockPicoLLMAdapter) GenerateWithTools(_ context.Context, messages []llm.Message, tools []llm.llm.ToolManifest) (llm.LLMResponse, error) {
 	if m.CallCount < len(m.Responses) {
 		resp := m.Responses[m.CallCount]
 		m.CallCount++
-		return LLMResponse{Content: resp}, nil
+		return llm.LLMResponse{Content: resp}, nil
 	}
-	return LLMResponse{Content: "Default Mock Content with Tools"}, nil
+	return llm.LLMResponse{Content: "Default Mock Content with Tools"}, nil
 }
 
 func (m *MockPicoLLMAdapter) Name() string {
@@ -97,8 +97,8 @@ func (m *MockSysInfoTool) Name() string { return "sys_info" }
 func (m *MockSysInfoTool) Execute(ctx context.Context, args string) (string, error) {
 	return "mock info", nil
 }
-func (m *MockSysInfoTool) Manifest() ToolManifest {
-	return ToolManifest{Name: "sys_info"}
+func (m *MockSysInfoTool) Manifest() llm.ToolManifest {
+	return llm.ToolManifest{Name: "sys_info"}
 }
 
 func TestEngine_PicoMode(t *testing.T) {
@@ -188,14 +188,14 @@ func TestEventLoopGoroutineLeak(t *testing.T) {
 
 type PoisonLLM struct{}
 
-func (m *PoisonLLM) GenerateWithTools(ctx context.Context, messages []Message, tools []llm.ToolManifest) (LLMResponse, error) {
+func (m *PoisonLLM) GenerateWithTools(ctx context.Context, messages []llm.Message, tools []llm.llm.ToolManifest) (llm.LLMResponse, error) {
 	if len(messages) == 2 {
-		return LLMResponse{
+		return llm.LLMResponse{
 			Content:   "",
 			ToolCalls: []ToolCall{{ID: "call_1", Name: "poison_tool", Arguments: "{}"}},
 		}, nil
 	}
-	return LLMResponse{Content: "should never reach here"}, nil
+	return llm.LLMResponse{Content: "should never reach here"}, nil
 }
 func (m *PoisonLLM) Generate(ctx context.Context, systemPrompt, userInput string) (string, error) {
 	return "", nil
@@ -206,8 +206,8 @@ type PoisonTool struct {
 	result string
 }
 
-func (p *PoisonTool) Manifest() ToolManifest {
-	return ToolManifest{Name: "poison_tool"}
+func (p *PoisonTool) Manifest() llm.ToolManifest {
+	return llm.ToolManifest{Name: "poison_tool"}
 }
 func (p *PoisonTool) Execute(ctx context.Context, args string) (string, error) {
 	return p.result, nil
