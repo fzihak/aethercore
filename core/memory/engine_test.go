@@ -52,3 +52,31 @@ func TestMemoryEngine_Recall(t *testing.T) {
 		t.Errorf("expected long-term memory recall but not found")
 	}
 }
+
+func TestMemoryEngine_Summarize(t *testing.T) {
+	storage := NewZestDBStorage()
+	engine := NewMemoryEngine(storage, 5)
+
+	ctx := context.Background()
+	for i := 0; i < 4; i++ {
+		_ = engine.Record(ctx, llm.Message{Role: "user", Content: "filler message"})
+	}
+
+	if len(engine.shortTermMem) != 4 {
+		t.Fatalf("expected 4 messages before summarization, got %d", len(engine.shortTermMem))
+	}
+
+	err := engine.Summarize(ctx)
+	if err != nil {
+		t.Fatalf("summarization failed: %v", err)
+	}
+
+	// After summarization (4/2 + 1) = 3 messages
+	if len(engine.shortTermMem) != 3 {
+		t.Errorf("expected 3 messages after summarization, got %d", len(engine.shortTermMem))
+	}
+
+	if engine.shortTermMem[0].Role != "system" {
+		t.Errorf("expected first message to be system summary, got %s", engine.shortTermMem[0].Role)
+	}
+}
