@@ -20,6 +20,13 @@ const (
 	StatusOffline  Status = "offline"
 )
 
+// ModelMetadata provides heuristics about cost and performance.
+type ModelMetadata struct {
+	CostPer1kTokens float64 // in USD
+	LatencyMillis   int     // expected average latency
+	CapabilityRank  int     // 1-10, where 10 is high-reasoning (e.g. GPT-4)
+}
+
 // Priority represents the selection rank (lower is higher priority).
 type Priority int
 
@@ -29,5 +36,6 @@ type Provider interface {
 	Name() string
 	Status() Status
 	Priority() Priority
+	Metadata() ModelMetadata
 	Execute(ctx context.Context, task string) (string, error)
 }
