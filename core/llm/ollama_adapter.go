@@ -30,6 +30,16 @@ func NewOllamaAdapter(model string) *OllamaAdapter {
 	}
 }
 
+// NewOllamaAdapterWithURL constructs an adapter pointing at the provided base URL.
+// Intended for integration tests and non-default Ollama deployments.
+func NewOllamaAdapterWithURL(model, baseURL string) *OllamaAdapter {
+	return &OllamaAdapter{
+		model:   model,
+		baseURL: baseURL,
+		http:    &http.Client{Timeout: 30 * time.Second},
+	}
+}
+
 // newTestOllamaAdapter constructs an adapter pointing at a test server (e.g. httptest.Server).
 func newTestOllamaAdapter(model, baseURL string) *OllamaAdapter {
 	return &OllamaAdapter{
