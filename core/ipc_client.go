@@ -52,6 +52,10 @@ func (c *SandboxClient) Close() error {
 // (Ed25519 via manifest.rs); the Go client passes the value through and lets
 // the sandbox reject invalid or missing signatures, avoiding a redundant gate.
 func (c *SandboxClient) ExecuteTool(ctx context.Context, toolName, payloadJSON, signatureHex string) (string, error) {
+	if c.client == nil {
+		return "", fmt.Errorf("sandbox client not connected: call NewSandboxClient first")
+	}
+
 	req := &ipc.ToolRequest{
 		ToolName:    toolName,
 		PayloadJson: payloadJSON,
