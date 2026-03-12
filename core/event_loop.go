@@ -87,6 +87,13 @@ func (e *Engine) WithSandbox(client *SandboxClient) *Engine {
 	return e
 }
 
+// WithToolVerifier enables Ed25519 verification for all subsequent tool
+// registrations on this engine.
+func (e *Engine) WithToolVerifier(verifier security.ToolVerifier) *Engine {
+	e.tools.SetVerifier(verifier)
+	return e
+}
+
 // RegisterTool adds a tool to the engine's ephemeral registry.
 func (e *Engine) RegisterTool(t Tool) error {
 	return e.tools.Register(t)

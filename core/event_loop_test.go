@@ -243,6 +243,13 @@ func TestEngine_MaliciousToolOutputRejection(t *testing.T) {
 	}
 }
 
+func TestEngine_WithToolVerifier_BlocksUnsignedRegistration(t *testing.T) {
+	engine := NewEngine(&MockLLMAdapter{}, 1, 1).WithToolVerifier(&MockVerifier{})
+	if err := engine.RegisterTool(&MockSysInfoTool{}); err == nil {
+		t.Fatalf("expected unsigned tool registration to fail when verifier is enabled")
+	}
+}
+
 func TestEngine_LLMVerifierRejectsNonRegexPromptInjection(t *testing.T) {
 	engine := NewEngine(&FirewallLLM{}, 1, 1)
 	engine.Start()

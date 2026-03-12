@@ -26,6 +26,13 @@ type Tool interface {
 	Execute(ctx context.Context, args string) (string, error)
 }
 
+// SignedTool carries the detached Ed25519 signature for a tool manifest.
+// Registries with an attached verifier require this interface to be present.
+type SignedTool interface {
+	Tool
+	Signature() string
+}
+
 // ToolRegistry manages the available tools in an ephemeral execution.
 type ToolRegistry struct {
 	mu       sync.RWMutex
@@ -40,19 +47,38 @@ func NewToolRegistry(verifier security.ToolVerifier) *ToolRegistry {
 	}
 }
 
+func (r *ToolRegistry) SetVerifier(verifier security.ToolVerifier) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.verifier = verifier
+}
+
 func (r *ToolRegistry) Register(t Tool) error {
 	if t == nil {
 		return ErrNilTool
 	}
 
 	m := t.Manifest()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, exists := r.tools[m.Name]; exists {
+		return fmt.Errorf("%w: %s", ErrToolRegistered, m.Name)
+	}
+
 	if r.verifier != nil {
+		signedTool, ok := t.(SignedTool)
+		if !ok {
+			slog.Warn("tool_verification_failed", slog.String("tool", m.Name), slog.String("error", "missing detached signature"))
+			return fmt.Errorf("cryptographic verification failed for tool %s: missing detached signature", m.Name)
+		}
+
 		manifestBytes, err := json.Marshal(m)
 		if err != nil {
 			return fmt.Errorf("tool_marshal_failed: %w", err)
 		}
-		ok, err := r.verifier.Verify(manifestBytes, "")
-		if !ok || err != nil {
+		verified, err := r.verifier.Verify(manifestBytes, signedTool.Signature())
+		if !verified || err != nil {
 			errStr := "signature verification rejected"
 			if err != nil {
 				errStr = err.Error()
@@ -63,13 +89,6 @@ func (r *ToolRegistry) Register(t Tool) error {
 			}
 			return fmt.Errorf("cryptographic verification failed for tool %s: %s", m.Name, errStr)
 		}
-	}
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if _, exists := r.tools[m.Name]; exists {
-		return fmt.Errorf("%w: %s", ErrToolRegistered, m.Name)
 	}
 	r.tools[m.Name] = t
 	return nil
