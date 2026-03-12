@@ -67,6 +67,7 @@ func NewEngine(adapter llm.LLMAdapter, workerCount, queueSize int) *Engine {
 		guard: security.NewOrchestratorGuard(
 			security.NewRegexScanner(),
 			security.NewSemanticAnalyzer(),
+			security.NewLLMVerifier(adapter),
 		),
 	}
 	e.taskPool.New = func() interface{} {
