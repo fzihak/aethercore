@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -49,11 +48,10 @@ func (c *SandboxClient) Close() error {
 }
 
 // ExecuteTool forwards a tool execution request to the Rust sandbox.
+// Signature verification is enforced server-side by the Rust SandboxService
+// (Ed25519 via manifest.rs); the Go client passes the value through and lets
+// the sandbox reject invalid or missing signatures, avoiding a redundant gate.
 func (c *SandboxClient) ExecuteTool(ctx context.Context, toolName, payloadJSON, signatureHex string) (string, error) {
-	if signatureHex == "" {
-		return "", errors.New("refusing to dispatch unsigned tool via IPC")
-	}
-
 	req := &ipc.ToolRequest{
 		ToolName:    toolName,
 		PayloadJson: payloadJSON,
