@@ -74,25 +74,33 @@ func ParseCron(expr string) (CronExpr, error) {
 		return CronExpr{}, ErrEmptyExpr
 	}
 
-	// Handle common aliases
-	switch expr {
-	case "@yearly", "@annually":
-		expr = "0 0 1 1 *"
-	case "@monthly":
-		expr = "0 0 1 * *"
-	case "@weekly":
-		expr = "0 0 * * 0"
-	case "@daily", "@midnight":
-		expr = "0 0 * * *"
-	case "@hourly":
-		expr = "0 * * * *"
-	}
+	expr = expandAlias(expr)
 
 	fields := strings.Fields(expr)
 	if len(fields) != fieldCount {
 		return CronExpr{}, fmt.Errorf("%w: expected %d fields, got %d", ErrInvalidCron, fieldCount, len(fields))
 	}
 
+	return parseFields(fields, expr)
+}
+
+func expandAlias(expr string) string {
+	switch expr {
+	case "@yearly", "@annually":
+		return "0 0 1 1 *"
+	case "@monthly":
+		return "0 0 1 * *"
+	case "@weekly":
+		return "0 0 * * 0"
+	case "@daily", "@midnight":
+		return "0 0 * * *"
+	case "@hourly":
+		return "0 * * * *"
+	}
+	return expr
+}
+
+func parseFields(fields []string, expr string) (CronExpr, error) {
 	minute, err := parseField(fields[0], minMinute, maxMinute)
 	if err != nil {
 		return CronExpr{}, fmt.Errorf("%w: minute: %w", ErrInvalidCron, err)
