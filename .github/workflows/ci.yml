@@ -18,6 +18,8 @@ jobs:
         exclude:
           - os: windows
             arch: arm64
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +30,7 @@ jobs:
 
       - name: Build
         env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         run: |
@@ -37,6 +40,8 @@ jobs:
   benchmark:
     name: Benchmark Metrics
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -53,6 +58,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
 
@@ -70,6 +77,8 @@ jobs:
     defaults:
       run:
         working-directory: ./runtime
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -90,6 +99,8 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       - name: golangci-lint
@@ -101,6 +112,8 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
       - name: Run Gosec Security Scanner
