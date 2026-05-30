@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"runtime"
 	"time"
@@ -86,23 +87,35 @@ func authCmd(mode string) {
 	_ = srv.Shutdown(context.Background())
 }
 
-func openBrowser(url string) {
-	var err error
+func openBrowser(u string) {
+	parsedURL, err := url.Parse(u)
+	if err != nil {
+		log.Printf("Failed to parse URL for browser: %v", err)
+		return
+	}
+
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		log.Printf("Invalid URL scheme %q. Please visit: %s", parsedURL.Scheme, u)
+		return
+	}
+
+	safeURL := parsedURL.String()
+
 	switch runtime.GOOS {
 	case "linux":
 		/* #nosec G204 */
-		err = exec.Command("xdg-open", url).Start()
+		err = exec.Command("xdg-open", safeURL).Start()
 	case "windows":
 		/* #nosec G204 */
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", safeURL).Start()
 	case "darwin":
 		/* #nosec G204 */
-		err = exec.Command("open", url).Start()
+		err = exec.Command("open", safeURL).Start()
 	default:
 		err = ErrUnsupportedPlatform
 	}
 	if err != nil {
-		log.Printf("Failed to open browser automatically. Please visit: %s", url)
+		log.Printf("Failed to open browser automatically. Please visit: %s", safeURL)
 	}
 }
 
