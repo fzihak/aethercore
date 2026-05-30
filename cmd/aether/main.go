@@ -251,10 +251,12 @@ func listToolsCmd() {
 
 	manifests := registry.Manifests()
 	for _, m := range manifests {
-		caps := ""
+		var builder strings.Builder
 		for _, c := range m.Capabilities {
-			caps += string(c) + " "
+			builder.WriteString(string(c))
+			builder.WriteByte(' ')
 		}
+		caps := builder.String()
 
 		limits := fmt.Sprintf("%dms / %dMB", m.MaxRuntimeMs, m.MemoryLimit)
 		fmt.Printf("%-15s | %-12s | %-15s | %s\n", m.Name, caps, limits, m.Description)

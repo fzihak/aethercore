@@ -15,9 +15,9 @@ type stubProvider struct {
 	err    error
 }
 
-func (s *stubProvider) Name() string           { return s.name }
-func (s *stubProvider) Status() Status         { return s.status }
-func (s *stubProvider) Priority() Priority     { return 1 }
+func (s *stubProvider) Name() string            { return s.name }
+func (s *stubProvider) Status() Status          { return s.status }
+func (s *stubProvider) Priority() Priority      { return 1 }
 func (s *stubProvider) Metadata() ModelMetadata { return ModelMetadata{} }
 func (s *stubProvider) Execute(_ context.Context, _ string) (string, error) {
 	return s.reply, s.err
