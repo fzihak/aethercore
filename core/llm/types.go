@@ -15,14 +15,14 @@ const (
 )
 
 // LLMAdapter defines the contract for any LLM provider used by the kernel.
-type LLMAdapter interface {
+type LLMAdapter interface { //nolint:revive // Keeping name for clarity
 	Generate(ctx context.Context, systemPrompt, userInput string) (string, error)
 	GenerateWithTools(ctx context.Context, messages []Message, tools []ToolManifest) (LLMResponse, error)
 	Name() string
 }
 
 // LLMResponse encapsulates the response from the LLM, including tool invocations if any.
-type LLMResponse struct {
+type LLMResponse struct { //nolint:revive // Keeping name for clarity
 	Content    string
 	ToolCalls  []ToolCall
 	TokenUsage TokenUsage

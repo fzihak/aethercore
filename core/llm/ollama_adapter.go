@@ -169,7 +169,7 @@ type ollamaChatResponse struct {
 // toOllamaMessage converts an engine-internal Message to the Ollama wire format.
 // Role "tool" (ToolResults) is expanded: one Ollama message per tool result,
 // using role "tool" and the content string.
-func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage {
+func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage { //nolint:gocritic
 	switch m.Role {
 	case "assistant":
 		om := ollamaMessage{Role: "assistant", Content: m.Content}
@@ -195,7 +195,7 @@ func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage {
 			if len(m.ToolResults) == 1 {
 				content = m.ToolResults[0].Content
 			} else {
-				raw, _ := json.Marshal(m.ToolResults)
+				raw, _ := json.Marshal(m.ToolResults) //nolint:errchkjson,musttag // Fallback ignoring error
 				content = string(raw)
 			}
 		}
@@ -204,7 +204,7 @@ func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage {
 }
 
 // fromOllamaResponse maps an Ollama API response back to the engine-internal LLMResponse.
-func (a *OllamaAdapter) fromOllamaResponse(r ollamaChatResponse) LLMResponse {
+func (a *OllamaAdapter) fromOllamaResponse(r ollamaChatResponse) LLMResponse { //nolint:gocritic
 	res := LLMResponse{
 		Content: r.Message.Content,
 		TokenUsage: TokenUsage{
@@ -229,7 +229,7 @@ func (a *OllamaAdapter) fromOllamaResponse(r ollamaChatResponse) LLMResponse {
 }
 
 // toOllamaTool converts an engine-internal ToolManifest to the Ollama wire format.
-func toOllamaTool(t ToolManifest) ollamaTool {
+func toOllamaTool(t ToolManifest) ollamaTool { //nolint:gocritic
 	params := t.Parameters
 	if len(params) == 0 || !json.Valid(params) {
 		params = json.RawMessage(`{"type":"object","properties":{},"required":[]}`)

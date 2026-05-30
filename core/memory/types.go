@@ -6,7 +6,7 @@ import (
 )
 
 // MemoryEntry represents a single unit of persistent episodic or semantic memory.
-type MemoryEntry struct {
+type MemoryEntry struct { //nolint:revive // Keeping name for clarity
 	ID        string            `json:"id"`
 	Content   string            `json:"content"`
 	Metadata  map[string]string `json:"metadata"`

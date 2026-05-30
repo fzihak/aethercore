@@ -60,7 +60,7 @@ func TestMemoryEngine_Summarize(t *testing.T) {
 	engine := NewMemoryEngine(storage, 5)
 
 	ctx := context.Background()
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 4; i++ { //nolint:intrange // Avoid newer Go 1.22 range syntax for compatibility
 		_ = engine.Record(ctx, llm.Message{Role: "user", Content: "filler message"})
 	}
 

@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"testing"
 
 	"github.com/fzihak/aethercore/core/llm"
@@ -19,7 +20,7 @@ func TestSysInfoTool(t *testing.T) {
 		t.Fatal("SysInfo tool should strictly only require CapState")
 	}
 
-	out, err := tool.Execute(nil, "")
+	out, err := tool.Execute(context.TODO(), "")
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v", err)
 	}

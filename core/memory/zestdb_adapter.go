@@ -56,11 +56,13 @@ func (s *ZestDBStorage) Delete(ctx context.Context, id string) error {
 }
 
 // Search queries the in-memory persistence layer for entries matching the criteria.
-func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error) {
+//
+//nolint:gocognit // Search is complex but necessary
+func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error) { //nolint:gocritic // opts
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var results []MemoryEntry
+	results := make([]MemoryEntry, 0, opts.Limit)
 	for _, entry := range s.data {
 		// 1. Keyword match in content
 		match := query == "" || containsIgnoreCase(entry.Content, query)

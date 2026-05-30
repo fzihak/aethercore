@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+const sysInfoToolName = "sys_info"
+
 // ollamaTextResponse builds a canned Ollama /api/chat response with plain text content.
 func ollamaTextResponse(t *testing.T, model, content string) []byte {
 	t.Helper()
@@ -61,7 +63,7 @@ func makeOllamaServer(t *testing.T, body []byte, statusCode int) *httptest.Serve
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		w.Write(body) //nolint:errcheck
+		w.Write(body)
 	}))
 }
 
@@ -88,13 +90,13 @@ func TestOllamaAdapter_textResponse(t *testing.T) {
 }
 
 func TestOllamaAdapter_toolCallResponse(t *testing.T) {
-	body := ollamaToolCallResponse(t, "llama3.2", "sys_info", map[string]any{})
+	body := ollamaToolCallResponse(t, "llama3.2", sysInfoToolName, map[string]any{})
 	srv := makeOllamaServer(t, body, http.StatusOK)
 	defer srv.Close()
 
 	adapter := newTestOllamaAdapter("llama3.2", srv.URL)
 	tools := []ToolManifest{{
-		Name:        "sys_info",
+		Name:        sysInfoToolName,
 		Description: "Returns current system metrics.",
 	}}
 
@@ -107,7 +109,7 @@ func TestOllamaAdapter_toolCallResponse(t *testing.T) {
 	if len(res.ToolCalls) != 1 {
 		t.Fatalf("expected 1 tool call, got %d", len(res.ToolCalls))
 	}
-	if res.ToolCalls[0].Name != "sys_info" {
+	if res.ToolCalls[0].Name != sysInfoToolName {
 		t.Errorf("want tool name=sys_info, got %q", res.ToolCalls[0].Name)
 	}
 	// Verify synthesised ID is non-empty
@@ -218,14 +220,14 @@ func TestToOllamaMessage_assistantWithToolCalls(t *testing.T) {
 		Role:    "assistant",
 		Content: "",
 		ToolCalls: []ToolCall{
-			{ID: "call_1", Name: "sys_info", Arguments: `{}`},
+			{ID: "call_1", Name: sysInfoToolName, Arguments: `{}`},
 		},
 	}
 	om := adapter.toOllamaMessage(m)
 	if len(om.ToolCalls) != 1 {
 		t.Fatalf("expected 1 tool call, got %d", len(om.ToolCalls))
 	}
-	if om.ToolCalls[0].Function.Name != "sys_info" {
+	if om.ToolCalls[0].Function.Name != sysInfoToolName {
 		t.Errorf("want tool name=sys_info, got %q", om.ToolCalls[0].Function.Name)
 	}
 }
