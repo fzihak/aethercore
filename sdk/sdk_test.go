@@ -176,7 +176,7 @@ func TestLoad_concurrentMapMutations(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		<-start
-		for i := 0; i < n; i++ {
+		for i := range n {
 			name := fmt.Sprintf("mod-%d", i)
 			_ = r.Load(newFake(name), sdk.NewModuleContext(name))
 		}
@@ -186,7 +186,7 @@ func TestLoad_concurrentMapMutations(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		<-start
-		for i := 0; i < n; i++ {
+		for i := range n {
 			name := fmt.Sprintf("mod-%d", i)
 			_ = r.Unload(name)
 		}
@@ -196,7 +196,7 @@ func TestLoad_concurrentMapMutations(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		<-start
-		for i := 0; i < n; i++ {
+		for i := range n {
 			name := fmt.Sprintf("mod-%d", i)
 			_, _ = r.Get(name)
 			_ = r.Len()
@@ -220,7 +220,7 @@ func TestLoad_concurrentSameName(t *testing.T) {
 	start := make(chan struct{})
 
 	wg.Add(n)
-	for i := 0; i < n; i++ {
+	for range n {
 		go func() {
 			defer wg.Done()
 			<-start
@@ -236,11 +236,12 @@ func TestLoad_concurrentSameName(t *testing.T) {
 	var errAlreadyLoadedCount int
 
 	for err := range errs {
-		if err == nil {
+		switch {
+		case err == nil:
 			successCount++
-		} else if errors.Is(err, sdk.ErrModuleAlreadyLoaded) {
+		case errors.Is(err, sdk.ErrModuleAlreadyLoaded):
 			errAlreadyLoadedCount++
-		} else {
+		default:
 			t.Errorf("unexpected error: %v", err)
 		}
 	}
