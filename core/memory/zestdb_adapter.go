@@ -62,20 +62,8 @@ func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOpt
 
 	var results []MemoryEntry
 	for _, entry := range s.data {
-		// 1. Keyword match in content
-		match := query == "" || containsIgnoreCase(entry.Content, query)
-
-		// 2. Keyword match in metadata values
-		if !match && query != "" {
-			for _, val := range entry.Metadata {
-				if containsIgnoreCase(val, query) {
-					match = true
-					break
-				}
-			}
-		}
-
-		if !match {
+		// 1 & 2. Keyword match in content and metadata values
+		if !matchesQuery(entry, query) {
 			continue
 		}
 
@@ -113,4 +101,16 @@ func (s *ZestDBStorage) Close() error {
 
 func containsIgnoreCase(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+}
+
+func matchesQuery(entry MemoryEntry, query string) bool {
+	if query == "" || containsIgnoreCase(entry.Content, query) {
+		return true
+	}
+	for _, val := range entry.Metadata {
+		if containsIgnoreCase(val, query) {
+			return true
+		}
+	}
+	return false
 }
