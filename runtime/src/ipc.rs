@@ -79,7 +79,17 @@ pub async fn start_uds_server<P: AsRef<Path>>(
         std::fs::remove_file(p)?;
     }
 
-    let uds = UnixListener::bind(p)?;
+    // Set process umask to 0o177 to ensure the socket is created with 0o600 permissions
+    // This prevents a TOCTOU race condition where an attacker connects before permissions are applied
+    let old_umask = unsafe { libc::umask(0o177) };
+
+    let uds = UnixListener::bind(p);
+
+    // Restore the old umask
+    unsafe { libc::umask(old_umask) };
+
+    let uds = uds?;
+
     let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?);
 
     let service = SandboxService {
