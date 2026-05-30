@@ -59,6 +59,22 @@ type CronExpr struct {
 	raw      string // original expression string for display
 }
 
+func resolveAlias(expr string) string {
+	switch expr {
+	case "@yearly", "@annually":
+		return "0 0 1 1 *"
+	case "@monthly":
+		return "0 0 1 * *"
+	case "@weekly":
+		return "0 0 * * 0"
+	case "@daily", "@midnight":
+		return "0 0 * * *"
+	case "@hourly":
+		return "0 * * * *"
+	}
+	return expr
+}
+
 // ParseCron parses a 5-field cron expression into a CronExpr bitset.
 //
 // Examples:
@@ -74,25 +90,17 @@ func ParseCron(expr string) (CronExpr, error) {
 		return CronExpr{}, ErrEmptyExpr
 	}
 
-	// Handle common aliases
-	switch expr {
-	case "@yearly", "@annually":
-		expr = "0 0 1 1 *"
-	case "@monthly":
-		expr = "0 0 1 * *"
-	case "@weekly":
-		expr = "0 0 * * 0"
-	case "@daily", "@midnight":
-		expr = "0 0 * * *"
-	case "@hourly":
-		expr = "0 * * * *"
-	}
+	expr = resolveAlias(expr)
 
 	fields := strings.Fields(expr)
 	if len(fields) != fieldCount {
 		return CronExpr{}, fmt.Errorf("%w: expected %d fields, got %d", ErrInvalidCron, fieldCount, len(fields))
 	}
 
+	return parseCronFields(fields, expr)
+}
+
+func parseCronFields(fields []string, rawExpr string) (CronExpr, error) {
 	minute, err := parseField(fields[0], minMinute, maxMinute)
 	if err != nil {
 		return CronExpr{}, fmt.Errorf("%w: minute: %w", ErrInvalidCron, err)
@@ -124,7 +132,7 @@ func ParseCron(expr string) (CronExpr, error) {
 		DayMonth: dom,
 		Month:    month,
 		DayWeek:  dow,
-		raw:      expr,
+		raw:      rawExpr,
 	}, nil
 }
 
