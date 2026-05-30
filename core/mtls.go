@@ -169,27 +169,9 @@ func generateAndSave(nodeID, dir, caKeyPath, caCertPath, leafKeyPath, leafCertPa
 		return nil, fmt.Errorf("mtls: sign leaf cert: %w", err)
 	}
 
-	// 3. Encode and write all four files (0600 — owner only).
-	caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCertDER})
-	caKeyPEM, err := encodeECKey(caKey)
+	caCertPEM, leafCertPEM, leafKeyPEM, err := saveIdentityFiles(caCertDER, leafCertDER, caKey, leafKey, caKeyPath, caCertPath, leafKeyPath, leafCertPath)
 	if err != nil {
 		return nil, err
-	}
-	leafCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leafCertDER})
-	leafKeyPEM, err := encodeECKey(leafKey)
-	if err != nil {
-		return nil, err
-	}
-
-	for path, data := range map[string][]byte{
-		caKeyPath:    caKeyPEM,
-		caCertPath:   caCertPEM,
-		leafKeyPath:  leafKeyPEM,
-		leafCertPath: leafCertPEM,
-	} {
-		if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil {
-			return nil, fmt.Errorf("mtls: write %s: %w", path, writeErr)
-		}
 	}
 
 	// 4. Build TLS config.
@@ -212,6 +194,34 @@ func generateAndSave(nodeID, dir, caKeyPath, caCertPath, leafKeyPath, leafCertPa
 		CACertPEM: caCertPEM,
 		TLSConfig: buildTLSConfig(&tlsCert, pool),
 	}, nil
+}
+
+// saveIdentityFiles encodes the generated certificates and keys to PEM format and writes them to disk.
+func saveIdentityFiles(caCertDER, leafCertDER []byte, caKey, leafKey *ecdsa.PrivateKey, caKeyPath, caCertPath, leafKeyPath, leafCertPath string) (caCertPEM, leafCertPEM, leafKeyPEM []byte, err error) {
+	// 3. Encode and write all four files (0600 — owner only).
+	caCertPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCertDER})
+	caKeyPEM, err := encodeECKey(caKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	leafCertPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leafCertDER})
+	leafKeyPEM, err = encodeECKey(leafKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	for path, data := range map[string][]byte{
+		caKeyPath:    caKeyPEM,
+		caCertPath:   caCertPEM,
+		leafKeyPath:  leafKeyPEM,
+		leafCertPath: leafCertPEM,
+	} {
+		if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil {
+			return nil, nil, nil, fmt.Errorf("mtls: write %s: %w", path, writeErr)
+		}
+	}
+
+	return caCertPEM, leafCertPEM, leafKeyPEM, nil
 }
 
 // buildTLSConfig constructs a strict TLS 1.3-only config for mTLS mesh comms.

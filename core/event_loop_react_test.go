@@ -38,17 +38,17 @@ func mockOllamaServer(t *testing.T, responses []any) *httptest.Server {
 
 // ollamaResp is a helper to build the Ollama /api/chat JSON envelope inline.
 type ollamaResp struct {
-	Model   string       `json:"model"`
-	Message ollamaMsg    `json:"message"`
-	Done    bool         `json:"done"`
-	Prompt  int          `json:"prompt_eval_count"`
-	Eval    int          `json:"eval_count"`
+	Model   string    `json:"model"`
+	Message ollamaMsg `json:"message"`
+	Done    bool      `json:"done"`
+	Prompt  int       `json:"prompt_eval_count"`
+	Eval    int       `json:"eval_count"`
 }
 
 type ollamaMsg struct {
-	Role      string        `json:"role"`
-	Content   string        `json:"content"`
-	ToolCalls []ollamaTC    `json:"tool_calls,omitempty"`
+	Role      string     `json:"role"`
+	Content   string     `json:"content"`
+	ToolCalls []ollamaTC `json:"tool_calls,omitempty"`
 }
 
 type ollamaTC struct {
