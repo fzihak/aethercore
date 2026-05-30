@@ -177,6 +177,13 @@ func parseField(field string, lo, hi int) (uint64, error) {
 	return bits, nil
 }
 
+// RangeBounds holds the constraints and step value for parsing a cron field.
+type RangeBounds struct {
+	Lo   int
+	Hi   int
+	Step int
+}
+
 func parsePart(part string, lo, hi int) (uint64, error) {
 	// Check for step: "*/2", "1-10/3", etc.
 	rangeStr, stepStr, hasStep := strings.Cut(part, "/")
@@ -190,29 +197,31 @@ func parsePart(part string, lo, hi int) (uint64, error) {
 		step = s
 	}
 
+	bounds := RangeBounds{Lo: lo, Hi: hi, Step: step}
+
 	if rangeStr == "*" {
-		return parseWildcard(lo, hi, step), nil
+		return parseWildcard(bounds), nil
 	}
 
 	startStr, endStr, isRange := strings.Cut(rangeStr, "-")
 	if isRange {
-		return parseRange(startStr, endStr, lo, hi, step)
+		return parseRange(startStr, endStr, bounds)
 	}
 
 	return parseSingle(rangeStr, lo, hi)
 }
 
 // parseWildcard generates the bitset for a wildcard field with a given step.
-func parseWildcard(lo, hi, step int) uint64 {
+func parseWildcard(bounds RangeBounds) uint64 {
 	var bits uint64
-	for v := lo; v <= hi; v += step {
+	for v := bounds.Lo; v <= bounds.Hi; v += bounds.Step {
 		bits = setBit(bits, safeUint(v))
 	}
 	return bits
 }
 
 // parseRange generates the bitset for a range field like "1-5" or "1-5/2".
-func parseRange(startStr, endStr string, lo, hi, step int) (uint64, error) {
+func parseRange(startStr, endStr string, bounds RangeBounds) (uint64, error) {
 	start, err := strconv.Atoi(startStr)
 	if err != nil {
 		return 0, fmt.Errorf("%w: invalid range start %q", ErrFieldRange, startStr)
@@ -221,11 +230,11 @@ func parseRange(startStr, endStr string, lo, hi, step int) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%w: invalid range end %q", ErrFieldRange, endStr)
 	}
-	if start < lo || end > hi || start > end {
-		return 0, fmt.Errorf("%w: range %d-%d outside [%d, %d]", ErrFieldRange, start, end, lo, hi)
+	if start < bounds.Lo || end > bounds.Hi || start > end {
+		return 0, fmt.Errorf("%w: range %d-%d outside [%d, %d]", ErrFieldRange, start, end, bounds.Lo, bounds.Hi)
 	}
 	var bits uint64
-	for v := start; v <= end; v += step {
+	for v := start; v <= end; v += bounds.Step {
 		bits = setBit(bits, safeUint(v))
 	}
 	return bits, nil
