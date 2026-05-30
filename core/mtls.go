@@ -37,6 +37,15 @@ type NodeIdentity struct {
 	TLSConfig *tls.Config
 }
 
+// CertPaths groups the filesystem paths required for certificate generation and loading.
+type CertPaths struct {
+	Dir          string
+	CAKeyPath    string
+	CACertPath   string
+	LeafKeyPath  string
+	LeafCertPath string
+}
+
 // certDir returns the filesystem path where certs are stored.
 // On Linux/macOS: ~/.aether/certs/
 // On Windows:     %APPDATA%\aether\certs\.
@@ -61,21 +70,24 @@ func LoadOrCreateIdentity(nodeID string) (*NodeIdentity, error) {
 		return nil, err
 	}
 
-	caKeyPath := filepath.Join(dir, "ca.key")
-	caCertPath := filepath.Join(dir, "ca.crt")
-	leafKeyPath := filepath.Join(dir, "node.key")
-	leafCertPath := filepath.Join(dir, "node.crt")
+	paths := CertPaths{
+		Dir:          dir,
+		CAKeyPath:    filepath.Join(dir, "ca.key"),
+		CACertPath:   filepath.Join(dir, "ca.crt"),
+		LeafKeyPath:  filepath.Join(dir, "node.key"),
+		LeafCertPath: filepath.Join(dir, "node.crt"),
+	}
 
 	// If any file is missing, regenerate everything from scratch.
-	for _, p := range []string{caKeyPath, caCertPath, leafKeyPath, leafCertPath} {
+	for _, p := range []string{paths.CAKeyPath, paths.CACertPath, paths.LeafKeyPath, paths.LeafCertPath} {
 		if _, statErr := os.Stat(p); os.IsNotExist(statErr) {
 			WithComponent("mtls").Info("cert_store_missing_regenerating", "path", p)
-			return generateAndSave(nodeID, dir, caKeyPath, caCertPath, leafKeyPath, leafCertPath)
+			return generateAndSave(nodeID, paths)
 		}
 	}
 
 	// Load existing CA cert to check expiry.
-	caCertPEM, err := os.ReadFile(caCertPath) // #nosec G304 -- path is constructed from UserConfigDir + hardcoded suffix
+	caCertPEM, err := os.ReadFile(paths.CACertPath) // #nosec G304 -- path is constructed from UserConfigDir + hardcoded suffix
 	if err != nil {
 		return nil, fmt.Errorf("mtls: read ca cert: %w", err)
 	}
@@ -89,11 +101,11 @@ func LoadOrCreateIdentity(nodeID string) (*NodeIdentity, error) {
 	}
 	if time.Now().After(caCert.NotAfter) {
 		WithComponent("mtls").Warn("ca_cert_expired_regenerating")
-		return generateAndSave(nodeID, dir, caKeyPath, caCertPath, leafKeyPath, leafCertPath)
+		return generateAndSave(nodeID, paths)
 	}
 
 	// Load TLS keypair (leaf cert + key).
-	tlsCert, err := tls.LoadX509KeyPair(leafCertPath, leafKeyPath)
+	tlsCert, err := tls.LoadX509KeyPair(paths.LeafCertPath, paths.LeafKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("mtls: load leaf keypair: %w", err)
 	}
@@ -116,8 +128,8 @@ func LoadOrCreateIdentity(nodeID string) (*NodeIdentity, error) {
 }
 
 // generateAndSave creates a fresh CA + leaf certificate pair and writes them to disk.
-func generateAndSave(nodeID, dir, caKeyPath, caCertPath, leafKeyPath, leafCertPath string) (*NodeIdentity, error) {
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+func generateAndSave(nodeID string, paths CertPaths) (*NodeIdentity, error) {
+	if err := os.MkdirAll(paths.Dir, 0o700); err != nil {
 		return nil, fmt.Errorf("mtls: create cert dir: %w", err)
 	}
 
@@ -182,10 +194,10 @@ func generateAndSave(nodeID, dir, caKeyPath, caCertPath, leafKeyPath, leafCertPa
 	}
 
 	for path, data := range map[string][]byte{
-		caKeyPath:    caKeyPEM,
-		caCertPath:   caCertPEM,
-		leafKeyPath:  leafKeyPEM,
-		leafCertPath: leafCertPEM,
+		paths.CAKeyPath:    caKeyPEM,
+		paths.CACertPath:   caCertPEM,
+		paths.LeafKeyPath:  leafKeyPEM,
+		paths.LeafCertPath: leafCertPEM,
 	} {
 		if writeErr := os.WriteFile(path, data, 0o600); writeErr != nil {
 			return nil, fmt.Errorf("mtls: write %s: %w", path, writeErr)
