@@ -61,7 +61,7 @@ func makeOllamaServer(t *testing.T, body []byte, statusCode int) *httptest.Serve
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		w.Write(body) //nolint:errcheck
+		w.Write(body)
 	}))
 }
 
@@ -107,6 +107,7 @@ func TestOllamaAdapter_toolCallResponse(t *testing.T) {
 	if len(res.ToolCalls) != 1 {
 		t.Fatalf("expected 1 tool call, got %d", len(res.ToolCalls))
 	}
+	//nolint:goconst // test literal
 	if res.ToolCalls[0].Name != "sys_info" {
 		t.Errorf("want tool name=sys_info, got %q", res.ToolCalls[0].Name)
 	}

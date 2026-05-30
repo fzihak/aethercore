@@ -10,6 +10,8 @@ import (
 
 // MemoryEngine manages the orchestration of episodic and persistent storage.
 // It handles context retention, summarization, and retrieval-augmented generation (RAG) precursors.
+//
+//nolint:revive // keep MemoryEngine name
 type MemoryEngine struct {
 	storage      Storage
 	shortTermMem []llm.Message
@@ -26,6 +28,8 @@ func NewMemoryEngine(storage Storage, maxShortTerm int) *MemoryEngine {
 }
 
 // Record saves a message to both ephemeral short-term memory and persistent episodic storage.
+//
+//nolint:gocritic // msg is small
 func (e *MemoryEngine) Record(ctx context.Context, msg llm.Message) error {
 	e.shortTermMem = append(e.shortTermMem, msg)
 	if len(e.shortTermMem) > e.maxShortTerm {
@@ -45,7 +49,7 @@ func (e *MemoryEngine) Record(ctx context.Context, msg llm.Message) error {
 // Recall retrieves short-term memory and relevant long-term memories for a given query.
 func (e *MemoryEngine) Recall(ctx context.Context, query string) ([]llm.Message, error) {
 	// 1. Start with short-term memory (most recent context)
-	combined := make([]llm.Message, len(e.shortTermMem))
+	combined := make([]llm.Message, len(e.shortTermMem), len(e.shortTermMem)+3)
 	copy(combined, e.shortTermMem)
 
 	// 2. Fetch relevant long-term memories via storage search
@@ -59,7 +63,7 @@ func (e *MemoryEngine) Recall(ctx context.Context, query string) ([]llm.Message,
 	for _, entry := range entries {
 		combined = append(combined, llm.Message{
 			Role:    "system",
-			Content: fmt.Sprintf("[Memory Recall] %s", entry.Content),
+			Content: "[Memory Recall] " + entry.Content,
 		})
 	}
 

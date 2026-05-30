@@ -26,7 +26,8 @@ func (p *RetryingProvider) Metadata() ModelMetadata { return p.base.Metadata() }
 
 func (p *RetryingProvider) Execute(ctx context.Context, task string) (string, error) {
 	var lastErr error
-	for i := 0; i < p.maxRetries; i++ {
+	for i := range p.maxRetries {
+		_ = i
 		res, err := p.base.Execute(ctx, task)
 		if err == nil {
 			return res, nil

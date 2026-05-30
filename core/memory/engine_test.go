@@ -60,7 +60,8 @@ func TestMemoryEngine_Summarize(t *testing.T) {
 	engine := NewMemoryEngine(storage, 5)
 
 	ctx := context.Background()
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
+		_ = i
 		_ = engine.Record(ctx, llm.Message{Role: "user", Content: "filler message"})
 	}
 

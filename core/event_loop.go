@@ -229,9 +229,8 @@ func (e *Engine) executeEphemeral(t *Task) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	var messages []llm.Message
-	messages = append(messages, llm.Message{Role: "system", Content: "You are AetherCore Kernel. Execute the objective using tools."})
-	messages = append(messages, llm.Message{Role: "user", Content: t.Input})
+	messages := make([]llm.Message, 0, 2)
+	messages = append(messages, llm.Message{Role: "system", Content: "You are AetherCore Kernel. Execute the objective using tools."}, llm.Message{Role: "user", Content: t.Input})
 
 	guardRes := e.guard.Scan(ctx, t.Input, security.GuardConfig{})
 	if !guardRes.IsSafe {
