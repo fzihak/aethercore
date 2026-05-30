@@ -17,8 +17,17 @@ import (
 
 var ErrUnsupportedPlatform = errors.New("unsupported platform")
 
-// authCmd groups the login and onboard logic.
-func authCmd(mode string) {
+// loginCmd handles the login logic.
+func loginCmd() {
+	executeAuthFlow("login")
+}
+
+// onboardCmd handles the signup logic.
+func onboardCmd() {
+	executeAuthFlow("signup")
+}
+
+func executeAuthFlow(mode string) {
 	fmt.Printf("Starting AetherCore %s process...\n", mode)
 
 	// In a real implementation this would fetch the well-known keys.
@@ -29,14 +38,34 @@ func authCmd(mode string) {
 		log.Fatalf("Failed to initialize auth manager: %v", err)
 	}
 
+	srv, tokenChan := startAuthServer()
+
+	// Open the browser
+	stateBytes := make([]byte, 16)
+	if _, err := rand.Read(stateBytes); err != nil {
+		log.Fatalf("Failed to generate random state: %v", err)
+	}
+	state := base64.URLEncoding.EncodeToString(stateBytes)
+
+	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
+	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/%s?redirect_uri=http://localhost:9092/callback&state=%s", mode, state)
+	fmt.Printf("Opening browser to %s\n", url)
+	openBrowser(url)
+
+	waitForToken(tokenChan, srv)
+}
+
+func startAuthServer() (server *http.Server, tokenChan chan string) {
 	// Setup a local redirect server to receive the JWT from the cloud auth provider
 	// Clerk.dev will redirect to localhost:9092/callback?token=xxx
-	tokenChan := make(chan string)
+	tokenChan = make(chan string)
 	srv := &http.Server{
 		Addr:              ":9092",
 		ReadHeaderTimeout: 3 * time.Second,
 	}
 
+	// In a real server you shouldn't use default ServeMux if possible or reset it,
+	// but here since we only run one command per CLI invocation it's fine.
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		token := r.URL.Query().Get("token")
 		if token == "" {
@@ -53,19 +82,10 @@ func authCmd(mode string) {
 			log.Fatalf("Local auth server failed: %v", err)
 		}
 	}()
+	return srv, tokenChan
+}
 
-	// Open the browser
-	stateBytes := make([]byte, 16)
-	if _, err := rand.Read(stateBytes); err != nil {
-		log.Fatalf("Failed to generate random state: %v", err)
-	}
-	state := base64.URLEncoding.EncodeToString(stateBytes)
-
-	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
-	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/%s?redirect_uri=http://localhost:9092/callback&state=%s", mode, state)
-	fmt.Printf("Opening browser to %s\n", url)
-	openBrowser(url)
-
+func waitForToken(tokenChan chan string, srv *http.Server) {
 	// Wait for the callback with a timeout
 	select {
 	case token := <-tokenChan:
