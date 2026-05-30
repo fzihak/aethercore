@@ -82,7 +82,7 @@ func LoadOrCreateIdentity(nodeID string) (*NodeIdentity, error) {
 	for _, p := range []string{paths.CAKeyPath, paths.CACertPath, paths.LeafKeyPath, paths.LeafCertPath} {
 		if _, statErr := os.Stat(p); os.IsNotExist(statErr) {
 			WithComponent("mtls").Info("cert_store_missing_regenerating", "path", p)
-			return generateAndSave(nodeID, paths)
+			return generateAndSave(nodeID, &paths)
 		}
 	}
 
@@ -101,7 +101,7 @@ func LoadOrCreateIdentity(nodeID string) (*NodeIdentity, error) {
 	}
 	if time.Now().After(caCert.NotAfter) {
 		WithComponent("mtls").Warn("ca_cert_expired_regenerating")
-		return generateAndSave(nodeID, paths)
+		return generateAndSave(nodeID, &paths)
 	}
 
 	// Load TLS keypair (leaf cert + key).
@@ -128,7 +128,7 @@ func LoadOrCreateIdentity(nodeID string) (*NodeIdentity, error) {
 }
 
 // generateAndSave creates a fresh CA + leaf certificate pair and writes them to disk.
-func generateAndSave(nodeID string, paths CertPaths) (*NodeIdentity, error) {
+func generateAndSave(nodeID string, paths *CertPaths) (*NodeIdentity, error) {
 	if err := os.MkdirAll(paths.Dir, 0o700); err != nil {
 		return nil, fmt.Errorf("mtls: create cert dir: %w", err)
 	}
