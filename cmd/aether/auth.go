@@ -17,18 +17,51 @@ import (
 
 var ErrUnsupportedPlatform = errors.New("unsupported platform")
 
-// authCmd groups the login and onboard logic.
-func authCmd(mode string) {
-	fmt.Printf("Starting AetherCore %s process...\n", mode)
+// loginCmd handles the authentication flow for existing users.
+func loginCmd() {
+	fmt.Printf("Starting AetherCore login process...\n")
 
-	// In a real implementation this would fetch the well-known keys.
-	// We'll initialize AuthManager with nil public key just for the CLI stub since
-	// the actual PKI verification needs the RS256 public key from auth backend.
-	_, err := core.NewAuthManager(nil)
-	if err != nil {
-		log.Fatalf("Failed to initialize auth manager: %v", err)
-	}
+	initAuthManager()
 
+	srv, tokenChan := startAuthServer()
+
+	// Open the browser
+	state := generateState()
+
+	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
+	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/login?redirect_uri=http://localhost:9092/callback&state=%s", state)
+	fmt.Printf("Opening browser to %s\n", url)
+	openBrowser(url)
+
+	waitForToken(tokenChan)
+
+	// Shutdown the server cleanly
+	_ = srv.Shutdown(context.Background())
+}
+
+// onboardCmd handles the first-time setup and authentication flow.
+func onboardCmd() {
+	fmt.Printf("Starting AetherCore signup process...\n")
+
+	initAuthManager()
+
+	srv, tokenChan := startAuthServer()
+
+	// Open the browser
+	state := generateState()
+
+	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
+	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/signup?redirect_uri=http://localhost:9092/callback&state=%s", state)
+	fmt.Printf("Opening browser to %s\n", url)
+	openBrowser(url)
+
+	waitForToken(tokenChan)
+
+	// Shutdown the server cleanly
+	_ = srv.Shutdown(context.Background())
+}
+
+func startAuthServer() (*http.Server, chan string) {
 	// Setup a local redirect server to receive the JWT from the cloud auth provider
 	// Clerk.dev will redirect to localhost:9092/callback?token=xxx
 	tokenChan := make(chan string)
@@ -54,18 +87,18 @@ func authCmd(mode string) {
 		}
 	}()
 
-	// Open the browser
+	return srv, tokenChan
+}
+
+func generateState() string {
 	stateBytes := make([]byte, 16)
 	if _, err := rand.Read(stateBytes); err != nil {
 		log.Fatalf("Failed to generate random state: %v", err)
 	}
-	state := base64.URLEncoding.EncodeToString(stateBytes)
+	return base64.URLEncoding.EncodeToString(stateBytes)
+}
 
-	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
-	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/%s?redirect_uri=http://localhost:9092/callback&state=%s", mode, state)
-	fmt.Printf("Opening browser to %s\n", url)
-	openBrowser(url)
-
+func waitForToken(tokenChan <-chan string) {
 	// Wait for the callback with a timeout
 	select {
 	case token := <-tokenChan:
@@ -81,9 +114,16 @@ func authCmd(mode string) {
 	case <-time.After(5 * time.Minute):
 		log.Fatalf("Authentication timed out after 5 minutes.")
 	}
+}
 
-	// Shutdown the server cleanly
-	_ = srv.Shutdown(context.Background())
+func initAuthManager() {
+	// In a real implementation this would fetch the well-known keys.
+	// We'll initialize AuthManager with nil public key just for the CLI stub since
+	// the actual PKI verification needs the RS256 public key from auth backend.
+	_, err := core.NewAuthManager(nil)
+	if err != nil {
+		log.Fatalf("Failed to initialize auth manager: %v", err)
+	}
 }
 
 func openBrowser(url string) {
