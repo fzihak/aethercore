@@ -166,27 +166,37 @@ type ollamaChatResponse struct {
 
 // ---- conversion helpers -----------------------------------------------------
 
+func toOllamaToolCalls(toolCalls []ToolCall) []ollamaToolCall {
+	if len(toolCalls) == 0 {
+		return nil
+	}
+	var ollamaCalls []ollamaToolCall
+	for _, tc := range toolCalls {
+		args := json.RawMessage(tc.Arguments)
+		if !json.Valid(args) {
+			args = json.RawMessage(`{}`)
+		}
+		ollamaCalls = append(ollamaCalls, ollamaToolCall{
+			Function: ollamaToolCallFunc{
+				Name:      tc.Name,
+				Arguments: args,
+			},
+		})
+	}
+	return ollamaCalls
+}
+
 // toOllamaMessage converts an engine-internal Message to the Ollama wire format.
 // Role "tool" (ToolResults) is expanded: one Ollama message per tool result,
 // using role "tool" and the content string.
 func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage {
 	switch m.Role {
 	case "assistant":
-		om := ollamaMessage{Role: "assistant", Content: m.Content}
-		for i, tc := range m.ToolCalls {
-			args := json.RawMessage(tc.Arguments)
-			if !json.Valid(args) {
-				args = json.RawMessage(`{}`)
-			}
-			om.ToolCalls = append(om.ToolCalls, ollamaToolCall{
-				Function: ollamaToolCallFunc{
-					Name:      tc.Name,
-					Arguments: args,
-				},
-			})
-			_ = i // suppress unused warning
+		return ollamaMessage{
+			Role:      "assistant",
+			Content:   m.Content,
+			ToolCalls: toOllamaToolCalls(m.ToolCalls),
 		}
-		return om
 	default:
 		// "system", "user", "tool" — Ollama accepts all with plain content
 		content := m.Content

@@ -90,6 +90,69 @@ func TestLoad_duplicateName(t *testing.T) {
 	}
 }
 
+func TestLoad_stateVerification(t *testing.T) {
+	r := sdk.NewModuleRegistry()
+	modName := "state-test-mod"
+	mc := sdk.NewModuleContext(modName)
+	mod := newFake(modName)
+
+	// Load the module
+	if err := r.Load(mod, mc); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	// Verify we can retrieve it
+	retrievedMod, err := r.Get(modName)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+
+	// Verify it is the exact same pointer
+	if retrievedMod != mod {
+		t.Fatalf("Get returned different pointer. expected %p, got %p", mod, retrievedMod)
+	}
+}
+
+func TestLoad_concurrentSameName(t *testing.T) {
+	r := sdk.NewModuleRegistry()
+
+	const n = 50
+	var wg sync.WaitGroup
+	wg.Add(n)
+
+	successCount := 0
+	errorCount := 0
+	var mu sync.Mutex
+
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			err := r.Load(newFake("shared-mod"), sdk.NewModuleContext("shared-mod"))
+
+			mu.Lock()
+			if err == nil {
+				successCount++
+			} else if errors.Is(err, sdk.ErrModuleAlreadyLoaded) {
+				errorCount++
+			} else {
+				t.Errorf("unexpected error: %v", err)
+			}
+			mu.Unlock()
+		}()
+	}
+	wg.Wait()
+
+	if successCount != 1 {
+		t.Fatalf("expected exactly 1 successful load, got %d", successCount)
+	}
+	if errorCount != n-1 {
+		t.Fatalf("expected %d ErrModuleAlreadyLoaded, got %d", n-1, errorCount)
+	}
+	if r.Len() != 1 {
+		t.Fatalf("expected registry length to be 1, got %d", r.Len())
+	}
+}
+
 func TestUnload_success(t *testing.T) {
 	r := sdk.NewModuleRegistry()
 	mc := sdk.NewModuleContext("beta")

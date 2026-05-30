@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"runtime"
 	"time"
@@ -30,22 +31,12 @@ func onboardCmd() {
 func executeAuthFlow(mode string) {
 	fmt.Printf("Starting AetherCore %s process...\n", mode)
 
-	// In a real implementation this would fetch the well-known keys.
-	// We'll initialize AuthManager with nil public key just for the CLI stub since
-	// the actual PKI verification needs the RS256 public key from auth backend.
-	_, err := core.NewAuthManager(nil)
-	if err != nil {
-		log.Fatalf("Failed to initialize auth manager: %v", err)
-	}
+	initAuthManager()
 
 	srv, tokenChan := startAuthServer()
 
 	// Open the browser
-	stateBytes := make([]byte, 16)
-	if _, err := rand.Read(stateBytes); err != nil {
-		log.Fatalf("Failed to generate random state: %v", err)
-	}
-	state := base64.URLEncoding.EncodeToString(stateBytes)
+	state := generateState()
 
 	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
 	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/%s?redirect_uri=http://localhost:9092/callback&state=%s", mode, state)
@@ -85,6 +76,14 @@ func startAuthServer() (server *http.Server, tokenChan chan string) {
 	return srv, tokenChan
 }
 
+func generateState() string {
+	stateBytes := make([]byte, 16)
+	if _, err := rand.Read(stateBytes); err != nil {
+		log.Fatalf("Failed to generate random state: %v", err)
+	}
+	return base64.URLEncoding.EncodeToString(stateBytes)
+}
+
 func waitForToken(tokenChan chan string, srv *http.Server) {
 	// Wait for the callback with a timeout
 	select {
@@ -106,23 +105,45 @@ func waitForToken(tokenChan chan string, srv *http.Server) {
 	_ = srv.Shutdown(context.Background())
 }
 
-func openBrowser(url string) {
-	var err error
+func initAuthManager() {
+	// In a real implementation this would fetch the well-known keys.
+	// We'll initialize AuthManager with nil public key just for the CLI stub since
+	// the actual PKI verification needs the RS256 public key from auth backend.
+	_, err := core.NewAuthManager(nil)
+	if err != nil {
+		log.Fatalf("Failed to initialize auth manager: %v", err)
+	}
+}
+
+func openBrowser(targetURL string) {
+	u, err := url.ParseRequestURI(targetURL)
+	if err != nil {
+		log.Printf("Failed to parse URL: %v. Please visit: %s", err, targetURL)
+		return
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		log.Printf("Invalid URL scheme %q. Only http and https are allowed. Please visit: %s", u.Scheme, targetURL)
+		return
+	}
+
+	safeURL := u.String()
+
 	switch runtime.GOOS {
 	case "linux":
 		/* #nosec G204 */
-		err = exec.Command("xdg-open", url).Start()
+		err = exec.Command("xdg-open", safeURL).Start()
 	case "windows":
 		/* #nosec G204 */
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", safeURL).Start()
 	case "darwin":
 		/* #nosec G204 */
-		err = exec.Command("open", url).Start()
+		err = exec.Command("open", safeURL).Start()
 	default:
 		err = ErrUnsupportedPlatform
 	}
 	if err != nil {
-		log.Printf("Failed to open browser automatically. Please visit: %s", url)
+		log.Printf("Failed to open browser automatically. Please visit: %s", safeURL)
 	}
 }
 
