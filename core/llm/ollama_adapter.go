@@ -195,7 +195,10 @@ func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage {
 			if len(m.ToolResults) == 1 {
 				content = m.ToolResults[0].Content
 			} else {
-				raw, _ := json.Marshal(m.ToolResults)
+				raw, err := json.Marshal(m.ToolResults)
+				if err != nil {
+					return ollamaMessage{}
+				}
 				content = string(raw)
 			}
 		}
