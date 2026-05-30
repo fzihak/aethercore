@@ -55,10 +55,10 @@ func executeAuthFlow(mode string) {
 	waitForToken(tokenChan, srv)
 }
 
-func startAuthServer() (*http.Server, chan string) {
+func startAuthServer() (server *http.Server, tokenChan chan string) {
 	// Setup a local redirect server to receive the JWT from the cloud auth provider
 	// Clerk.dev will redirect to localhost:9092/callback?token=xxx
-	tokenChan := make(chan string)
+	tokenChan = make(chan string)
 	srv := &http.Server{
 		Addr:              ":9092",
 		ReadHeaderTimeout: 3 * time.Second,
