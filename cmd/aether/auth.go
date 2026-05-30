@@ -63,9 +63,9 @@ func authCmd(mode string) {
 	state := base64.URLEncoding.EncodeToString(stateBytes)
 
 	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
-	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/%s?redirect_uri=http://localhost:9092/callback&state=%s", mode, state)
-	fmt.Printf("Opening browser to %s\n", url)
-	openBrowser(url)
+	browserURL := fmt.Sprintf("https://auth.aethercore.brainexia.com/%s?redirect_uri=http://localhost:9092/callback&state=%s", mode, state)
+	fmt.Printf("Opening browser to %s\n", browserURL)
+	openBrowser(browserURL)
 
 	// Wait for the callback with a timeout
 	select {
