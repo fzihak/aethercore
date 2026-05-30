@@ -76,9 +76,9 @@ func parseLogLevel(s string) slog.Level {
 func dispatch(args []string, kernelMode bool) {
 	switch args[0] {
 	case "onboard":
-		authCmd("signup")
+		onboardCmd()
 	case "login":
-		authCmd("login")
+		loginCmd()
 	case "account": // 'account delete'
 		if len(args) > 1 && args[1] == "delete" {
 			deleteCmd()
