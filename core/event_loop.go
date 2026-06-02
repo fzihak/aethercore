@@ -223,23 +223,35 @@ func (e *Engine) worker(id int) {
 
 const maxAgentIterations = 10
 
+func (e *Engine) buildInitialMessages(input string) []llm.Message {
+	return []llm.Message{
+		{Role: "system", Content: "You are AetherCore Kernel. Execute the objective using tools."},
+		{Role: "user", Content: input},
+	}
+}
+
+func (e *Engine) verifyInput(ctx context.Context, taskID, input string) error {
+	guardRes := e.guard.Scan(ctx, input, security.GuardConfig{})
+	if !guardRes.IsSafe {
+		WithTask(ctx, taskID).Warn("security_violation_user_input",
+			slog.String("rule", guardRes.Violations[0].Category),
+			slog.String("description", guardRes.Violations[0].Description),
+		)
+		return fmt.Errorf("security_violation: %s", guardRes.Violations[0].Description)
+	}
+	return nil
+}
+
 // executeEphemeral is the core orchestration loop for a single task.
 // No state leaks outside this function.
 func (e *Engine) executeEphemeral(t *Task) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	var messages []llm.Message
-	messages = append(messages, llm.Message{Role: "system", Content: "You are AetherCore Kernel. Execute the objective using tools."})
-	messages = append(messages, llm.Message{Role: "user", Content: t.Input})
+	messages := e.buildInitialMessages(t.Input)
 
-	guardRes := e.guard.Scan(ctx, t.Input, security.GuardConfig{})
-	if !guardRes.IsSafe {
-		WithTask(ctx, t.ID).Warn("security_violation_user_input",
-			slog.String("rule", guardRes.Violations[0].Category),
-			slog.String("description", guardRes.Violations[0].Description),
-		)
-		return "", fmt.Errorf("security_violation: %s", guardRes.Violations[0].Description)
+	if err := e.verifyInput(ctx, t.ID, t.Input); err != nil {
+		return "", err
 	}
 
 	for iteration := range maxAgentIterations {
