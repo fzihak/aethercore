@@ -2,13 +2,14 @@ with open('cmd/aether/auth.go', 'r') as f:
     content = f.read()
 
 content = content.replace(
-    'tokenChan := make(chan string)',
-    'tokenChan = make(chan string)'
-)
+'''	srv, tokenChan := startAuthServer(state)
 
-content = content.replace(
-    'srv := &http.Server{',
-    'srv = &http.Server{'
+	// Open the browser
+	state := generateState()''',
+'''	// Open the browser
+	state := generateState()
+
+	srv, tokenChan := startAuthServer(state)'''
 )
 
 with open('cmd/aether/auth.go', 'w') as f:
