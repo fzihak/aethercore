@@ -43,7 +43,7 @@ func BenchmarkHandleRun(b *testing.B) {
 	defer srv.Close()
 
 	registry := sdk.NewModuleRegistry()
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		name := fmt.Sprintf("echo-%d", i)
 		mod := &dynEchoModule{name: name}
 		mc := sdk.NewModuleContext(name)
@@ -54,7 +54,7 @@ func BenchmarkHandleRun(b *testing.B) {
 	ctx := context.Background()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		adapter.HandleRun(ctx, 1, "hello")
 	}
 }
