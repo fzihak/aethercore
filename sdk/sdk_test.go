@@ -194,6 +194,18 @@ func TestGet_notFound(t *testing.T) {
 	}
 }
 
+func TestGetAll_snapshot(t *testing.T) {
+	r := sdk.NewModuleRegistry()
+	for _, name := range []string{"a", "b", "c"} {
+		_ = r.Load(newFake(name), sdk.NewModuleContext(name))
+	}
+
+	modules := r.GetAll()
+	if len(modules) != 3 {
+		t.Fatalf("want 3 modules, got %d", len(modules))
+	}
+}
+
 func TestManifests_snapshot(t *testing.T) {
 	r := sdk.NewModuleRegistry()
 	for _, name := range []string{"a", "b", "c"} {
