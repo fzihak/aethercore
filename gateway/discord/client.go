@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const (
+var (
 	discordAPIBase     = "https://discord.com/api/v10"
 	defaultHTTPTimeout = 10 * time.Second
 )
