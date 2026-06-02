@@ -30,7 +30,7 @@ func loginCmd() {
 	srv, tokenChan := startAuthServer(state)
 
 	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
-	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/login?redirect_uri=http://localhost:9092/callback&state=%s", state)
+	url := "https://auth.aethercore.brainexia.com/login?redirect_uri=http://localhost:9092/callback&state=" + state
 	fmt.Printf("Opening browser to %s\n", url)
 	openBrowser(url)
 
@@ -52,7 +52,7 @@ func onboardCmd() {
 	srv, tokenChan := startAuthServer(state)
 
 	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
-	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/signup?redirect_uri=http://localhost:9092/callback&state=%s", state)
+	url := "https://auth.aethercore.brainexia.com/signup?redirect_uri=http://localhost:9092/callback&state=" + state
 	fmt.Printf("Opening browser to %s\n", url)
 	openBrowser(url)
 
@@ -62,10 +62,10 @@ func onboardCmd() {
 	_ = srv.Shutdown(context.Background())
 }
 
-func startAuthServer(expectedState string) (*http.Server, chan string) {
+func startAuthServer(expectedState string) (srv *http.Server, tokenChan chan string) {
 	// Setup a local redirect server to receive the JWT from the cloud auth provider
 	// Clerk.dev will redirect to localhost:9092/callback?token=xxx
-	tokenChan := make(chan string)
+	tokenChan = make(chan string)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +84,7 @@ func startAuthServer(expectedState string) (*http.Server, chan string) {
 		tokenChan <- token
 	})
 
-	srv := &http.Server{
+	srv = &http.Server{
 		Addr:              "127.0.0.1:9092",
 		Handler:           mux,
 		ReadHeaderTimeout: 3 * time.Second,
