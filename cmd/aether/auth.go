@@ -62,10 +62,11 @@ func onboardCmd() {
 	_ = srv.Shutdown(context.Background())
 }
 
-func startAuthServer(expectedState string) (srv *http.Server, tokenChan chan string) {
+//nolint:gocritic // named return values are unnecessary for these two standard variables
+func startAuthServer(expectedState string) (*http.Server, chan string) {
 	// Setup a local redirect server to receive the JWT from the cloud auth provider
 	// Clerk.dev will redirect to localhost:9092/callback?token=xxx
-	tokenChan = make(chan string)
+	tokenChan := make(chan string)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +85,7 @@ func startAuthServer(expectedState string) (srv *http.Server, tokenChan chan str
 		tokenChan <- token
 	})
 
-	srv = &http.Server{
+	srv := &http.Server{
 		Addr:              "127.0.0.1:9092",
 		Handler:           mux,
 		ReadHeaderTimeout: 3 * time.Second,
