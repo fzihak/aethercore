@@ -98,7 +98,37 @@ func (s *ZestDBStorage) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// getCandidates returns the set of candidate IDs from the trigram index.
+func (s *ZestDBStorage) getCandidates(queryTrigrams []string) map[string]struct{} {
+	var candidateIDs map[string]struct{}
+	for i, tg := range queryTrigrams {
+		ids, ok := s.index[tg]
+		if !ok || len(ids) == 0 {
+			// A trigram is missing, so the query cannot be found
+			return make(map[string]struct{})
+		}
+
+		if i == 0 {
+			candidateIDs = make(map[string]struct{}, len(ids))
+			for id := range ids {
+				candidateIDs[id] = struct{}{}
+			}
+		} else {
+			nextMatched := make(map[string]struct{})
+			for id := range candidateIDs {
+				if _, exists := ids[id]; exists {
+					nextMatched[id] = struct{}{}
+				}
+			}
+			candidateIDs = nextMatched
+		}
+	}
+	return candidateIDs
+}
+
 // Search queries the in-memory persistence layer for entries matching the criteria.
+//
+//nolint:gocognit // This method handles indexing and fallback logic cleanly
 func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -109,43 +139,14 @@ func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOpt
 	// Determine if we should use the index
 	useIndex := query != "" && len(queryTrigrams) > 0 && len([]rune(query)) >= 3
 
-	var candidateIDs map[string]struct{}
-
 	if useIndex {
-		// 1. Intersect trigram sets to find candidate IDs
-		for i, tg := range queryTrigrams {
-			ids, ok := s.index[tg]
-			if !ok || len(ids) == 0 {
-				// A trigram is missing, so the query cannot be found
-				candidateIDs = make(map[string]struct{})
-				break
-			}
-
-			if i == 0 {
-				candidateIDs = make(map[string]struct{}, len(ids))
-				for id := range ids {
-					candidateIDs[id] = struct{}{}
-				}
-			} else {
-				nextMatched := make(map[string]struct{})
-				for id := range candidateIDs {
-					if _, exists := ids[id]; exists {
-						nextMatched[id] = struct{}{}
-					}
-				}
-				candidateIDs = nextMatched
-			}
-		}
-	}
-
-	// 2. Iterate over candidates (or all data if not using index)
-	if useIndex {
+		candidateIDs := s.getCandidates(queryTrigrams)
 		for id := range candidateIDs {
 			entry, exists := s.data[id]
 			if !exists {
 				continue
 			}
-			if s.matches(entry, query, opts) {
+			if s.matches(&entry, query, &opts) {
 				results = append(results, entry)
 				if opts.Limit > 0 && len(results) >= opts.Limit {
 					break
@@ -154,7 +155,7 @@ func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOpt
 		}
 	} else {
 		for _, entry := range s.data {
-			if s.matches(entry, query, opts) {
+			if s.matches(&entry, query, &opts) {
 				results = append(results, entry)
 				if opts.Limit > 0 && len(results) >= opts.Limit {
 					break
@@ -167,7 +168,7 @@ func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOpt
 }
 
 // matches performs the actual match logic to eliminate false positives and check tags.
-func (s *ZestDBStorage) matches(entry MemoryEntry, query string, opts SearchOptions) bool {
+func (s *ZestDBStorage) matches(entry *MemoryEntry, query string, opts *SearchOptions) bool {
 	// 1. Keyword match in content
 	match := query == "" || containsIgnoreCase(entry.Content, query)
 
