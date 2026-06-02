@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/fzihak/aethercore/sdk"
 )
@@ -296,6 +297,77 @@ func TestStartModule_nilModule(t *testing.T) {
 	err := sdk.StartModule(context.Background(), r, nil, sdk.NewModuleContext("x"))
 	if !errors.Is(err, sdk.ErrNilModule) {
 		t.Fatalf("want ErrNilModule, got %v", err)
+	}
+}
+
+type blockingFakeModule struct {
+	*fakeModule
+}
+
+func (m *blockingFakeModule) OnStart(ctx context.Context, _ *sdk.ModuleContext) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+func TestStartModule_timeout(t *testing.T) {
+	r := sdk.NewModuleRegistry()
+	mod := newFake("timeout-test")
+	mod.manifest.MaxTaskRuntimeMs = 10 // 10ms deadline
+	mc := sdk.NewModuleContext("timeout-test")
+
+	blockMod := &blockingFakeModule{fakeModule: mod}
+
+	err := sdk.StartModule(context.Background(), r, blockMod, mc)
+	if err == nil {
+		t.Fatal("expected error from StartModule on timeout, got nil")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected context.DeadlineExceeded, got %v", err)
+	}
+	if r.Len() != 0 {
+		t.Fatalf("module should NOT be registered on timeout, Len=%d", r.Len())
+	}
+}
+
+type deadlineCheckingFakeModule struct {
+	*fakeModule
+	hasDeadline bool
+	deadline    time.Time
+}
+
+func (m *deadlineCheckingFakeModule) OnStart(ctx context.Context, mc *sdk.ModuleContext) error {
+	if d, ok := ctx.Deadline(); ok {
+		m.hasDeadline = true
+		m.deadline = d
+	}
+	return m.fakeModule.OnStart(ctx, mc)
+}
+
+func TestStartModule_defaultTimeout(t *testing.T) {
+	r := sdk.NewModuleRegistry()
+	mod := newFake("default-timeout-test")
+	mod.manifest.MaxTaskRuntimeMs = 0 // should trigger defaultStartDeadlineMs (5000ms)
+	mc := sdk.NewModuleContext("default-timeout-test")
+
+	checkMod := &deadlineCheckingFakeModule{fakeModule: mod}
+
+	start := time.Now()
+	err := sdk.StartModule(context.Background(), r, checkMod, mc)
+	if err != nil {
+		t.Fatalf("StartModule failed: %v", err)
+	}
+
+	if !checkMod.hasDeadline {
+		t.Fatal("expected context to have a deadline")
+	}
+
+	// Calculate how far in the future the deadline is from the start time
+	// StartModule should set it to start + 5000ms
+	diff := checkMod.deadline.Sub(start)
+
+	// Check if diff is reasonably close to 5000ms (allow some slack)
+	if diff < 4000*time.Millisecond || diff > 6000*time.Millisecond {
+		t.Fatalf("expected deadline to be approx 5000ms from start, got %v", diff)
 	}
 }
 
