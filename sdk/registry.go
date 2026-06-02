@@ -95,6 +95,17 @@ func (r *ModuleRegistry) Manifests() []ModuleManifest {
 	return out
 }
 
+// GetAll returns a snapshot of all loaded modules.
+func (r *ModuleRegistry) GetAll() []Module {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make([]Module, 0, len(r.modules))
+	for _, m := range r.modules {
+		out = append(out, m)
+	}
+	return out
+}
+
 // Len returns the number of loaded modules.
 func (r *ModuleRegistry) Len() int {
 	r.mu.RLock()
