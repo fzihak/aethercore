@@ -124,17 +124,18 @@ func TestLoad_concurrentSameName(t *testing.T) {
 	errorCount := 0
 	var mu sync.Mutex
 
-	for i := 0; i < n; i++ {
+	for range n {
 		go func() {
 			defer wg.Done()
 			err := r.Load(newFake("shared-mod"), sdk.NewModuleContext("shared-mod"))
 
 			mu.Lock()
-			if err == nil {
+			switch {
+			case err == nil:
 				successCount++
-			} else if errors.Is(err, sdk.ErrModuleAlreadyLoaded) {
+			case errors.Is(err, sdk.ErrModuleAlreadyLoaded):
 				errorCount++
-			} else {
+			default:
 				t.Errorf("unexpected error: %v", err)
 			}
 			mu.Unlock()
@@ -191,6 +192,18 @@ func TestGet_notFound(t *testing.T) {
 	r := sdk.NewModuleRegistry()
 	if _, err := r.Get("ghost"); !errors.Is(err, sdk.ErrModuleNotFound) {
 		t.Fatalf("want ErrModuleNotFound, got %v", err)
+	}
+}
+
+func TestGetAll_snapshot(t *testing.T) {
+	r := sdk.NewModuleRegistry()
+	for _, name := range []string{"a", "b", "c"} {
+		_ = r.Load(newFake(name), sdk.NewModuleContext(name))
+	}
+
+	modules := r.GetAll()
+	if len(modules) != 3 {
+		t.Fatalf("want 3 modules, got %d", len(modules))
 	}
 }
 
