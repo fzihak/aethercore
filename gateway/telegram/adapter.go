@@ -49,23 +49,15 @@ func (a *Adapter) HandleRun(ctx context.Context, chatID int64, goal string) {
 		},
 	}
 
-	manifests := a.registry.Manifests()
-	if len(manifests) == 0 {
+	modules := a.registry.GetAll()
+	if len(modules) == 0 {
 		a.reply(ctx, chatID, "⚠️ No modules are currently loaded.")
 		return
 	}
 
 	var sb strings.Builder
-	for _, mf := range manifests {
-		mod, err := a.registry.Get(mf.Name)
-		if err != nil {
-			a.log.Error("telegram_adapter_get_module_failed",
-				slog.String("module", mf.Name),
-				slog.String("error", err.Error()),
-			)
-			continue
-		}
-
+	for _, mod := range modules {
+		mf := mod.Manifest()
 		result, err := mod.HandleTask(ctx, task)
 		if err != nil {
 			a.log.Error("telegram_adapter_task_failed",
