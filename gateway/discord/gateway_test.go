@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net"
 	"sync/atomic"
 	"testing"
@@ -103,7 +103,7 @@ func TestGateway_Run_Reconnect(t *testing.T) {
 	var connectCalls int32
 	mockDialer := func(string) (*wsConn, error) {
 		atomic.AddInt32(&connectCalls, 1)
-		return nil, fmt.Errorf("mock dial error") //nolint:perfsprint // Keep as fmt.Errorf to match style, error is only used for trace
+		return nil, errors.New("mock dial error")
 	}
 
 	g := NewGateway("token", DefaultIntents, nil, newTestLogger())
