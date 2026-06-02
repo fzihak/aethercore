@@ -24,10 +24,10 @@ func loginCmd() {
 
 	initAuthManager()
 
-	srv, tokenChan := startAuthServer()
-
 	// Open the browser
 	state := generateState()
+
+	srv, tokenChan := startAuthServer(state)
 
 	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
 	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/login?redirect_uri=http://localhost:9092/callback&state=%s", state)
@@ -46,10 +46,10 @@ func onboardCmd() {
 
 	initAuthManager()
 
-	srv, tokenChan := startAuthServer()
-
 	// Open the browser
 	state := generateState()
+
+	srv, tokenChan := startAuthServer(state)
 
 	// auth.aethercore.brainexia.com is the AetherCore cloud auth domain
 	url := fmt.Sprintf("https://auth.aethercore.brainexia.com/signup?redirect_uri=http://localhost:9092/callback&state=%s", state)
@@ -62,16 +62,18 @@ func onboardCmd() {
 	_ = srv.Shutdown(context.Background())
 }
 
-func startAuthServer() (*http.Server, chan string) {
+func startAuthServer(expectedState string) (*http.Server, chan string) {
 	// Setup a local redirect server to receive the JWT from the cloud auth provider
 	// Clerk.dev will redirect to localhost:9092/callback?token=xxx
 	tokenChan := make(chan string)
-	srv := &http.Server{
-		Addr:              ":9092",
-		ReadHeaderTimeout: 3 * time.Second,
-	}
 
-	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("state") != expectedState {
+			http.Error(w, "invalid state parameter", http.StatusBadRequest)
+			return
+		}
+
 		token := r.URL.Query().Get("token")
 		if token == "" {
 			http.Error(w, "missing token parameter", http.StatusBadRequest)
@@ -81,6 +83,12 @@ func startAuthServer() (*http.Server, chan string) {
 		fmt.Fprintln(w, "Authentication successful! You can close this browser tab.")
 		tokenChan <- token
 	})
+
+	srv := &http.Server{
+		Addr:              "127.0.0.1:9092",
+		Handler:           mux,
+		ReadHeaderTimeout: 3 * time.Second,
+	}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

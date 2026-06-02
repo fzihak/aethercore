@@ -2,3 +2,7 @@
 **Vulnerability:** The Unix Domain Socket for IPC was created using default process umask permissions, making it vulnerable to unauthorized local connections. A naive fix using `set_permissions` immediately after `bind()` creates a Time-Of-Check to Time-Of-Use (TOCTOU) race condition window where an attacker can connect.
 **Learning:** In Rust (and POSIX generally), creating a Unix Domain Socket with specific permissions securely and atomically requires manipulating the process `umask` *before* calling `bind()`, as `bind()` applies the current umask to the newly created socket file.
 **Prevention:** Always temporarily set `umask(0o177)` before binding a UDS, and restore it immediately afterward. Ensure the `bind()` call is synchronous (not `.await`) to prevent async task cancellation from leaving the umask permanently modified.
+## 2024-06-02 - Fix Missing CSRF Protection in CLI OAuth Flow
+**Vulnerability:** The OAuth login and signup flows did not validate the `state` parameter in the callback URL. An attacker could trick a user into clicking a link that logs the user into the attacker's account, or logs the user into their own account but intercepts the token if the callback was predictable.
+**Learning:** Always implement and validate the `state` parameter in OAuth flows to prevent Cross-Site Request Forgery (CSRF) attacks.
+**Prevention:** Generate a random `state` string before redirecting to the authorization server, pass it to the server, and verify that the `state` returned in the callback matches the one generated.
