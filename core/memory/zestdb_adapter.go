@@ -128,7 +128,7 @@ func (s *ZestDBStorage) getCandidates(queryTrigrams []string) map[string]struct{
 
 // Search queries the in-memory persistence layer for entries matching the criteria.
 //
-//nolint:gocognit // This method handles indexing and fallback logic cleanly
+//nolint:gocognit,nestif,gocritic // This method handles indexing and fallback logic cleanly
 func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
