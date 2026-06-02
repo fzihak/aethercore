@@ -125,17 +125,18 @@ func TestLoad_concurrentSameName(t *testing.T) {
 	errorCount := 0
 	var mu sync.Mutex
 
-	for i := 0; i < n; i++ {
+	for range n {
 		go func() {
 			defer wg.Done()
 			err := r.Load(newFake("shared-mod"), sdk.NewModuleContext("shared-mod"))
 
 			mu.Lock()
-			if err == nil {
+			switch {
+			case err == nil:
 				successCount++
-			} else if errors.Is(err, sdk.ErrModuleAlreadyLoaded) {
+			case errors.Is(err, sdk.ErrModuleAlreadyLoaded):
 				errorCount++
-			} else {
+			default:
 				t.Errorf("unexpected error: %v", err)
 			}
 			mu.Unlock()
