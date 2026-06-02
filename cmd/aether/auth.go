@@ -69,6 +69,8 @@ func startAuthServer() (*http.Server, chan string) {
 	srv := &http.Server{
 		Addr:              ":9092",
 		ReadHeaderTimeout: 3 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
 	}
 
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
