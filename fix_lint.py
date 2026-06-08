@@ -1,11 +1,7 @@
-with open('cmd/aether/auth.go', 'r') as f:
+with open('core/memory/zestdb_adapter.go', 'r') as f:
     content = f.read()
 
-content = content.replace(
-'''func startAuthServer(expectedState string) (*http.Server, chan string) {''',
-'''//nolint:gocritic // named return values are unnecessary for these two standard variables
-func startAuthServer(expectedState string) (*http.Server, chan string) {'''
-)
+content = content.replace('// Search queries the in-memory persistence layer for entries matching the criteria.\n//nolint:gocognit // Mock search uses high cognitive complexity by design\nfunc (s *ZestDBStorage) Search', '// Search queries the in-memory persistence layer for entries matching the criteria.\n//nolint:gocognit // Mock search uses high cognitive complexity by design\n//\n//nolint:gocritic // Disable hugeParam check on opts in mock\nfunc (s *ZestDBStorage) Search')
 
-with open('cmd/aether/auth.go', 'w') as f:
+with open('core/memory/zestdb_adapter.go', 'w') as f:
     f.write(content)
