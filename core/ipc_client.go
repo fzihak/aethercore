@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -53,7 +54,7 @@ func (c *SandboxClient) Close() error {
 // the sandbox reject invalid or missing signatures, avoiding a redundant gate.
 func (c *SandboxClient) ExecuteTool(ctx context.Context, toolName, payloadJSON, signatureHex string) (string, error) {
 	if c.client == nil {
-		return "", fmt.Errorf("sandbox client not connected: call NewSandboxClient first")
+		return "", errors.New("sandbox client not connected: call NewSandboxClient first")
 	}
 
 	req := &ipc.ToolRequest{

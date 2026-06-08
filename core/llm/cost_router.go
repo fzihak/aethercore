@@ -20,6 +20,7 @@ func NewCostRouter(providers []Provider, minCapability int) *CostRouter {
 }
 
 func (r *CostRouter) Select(ctx context.Context, task string) (Provider, error) {
+	//nolint:prealloc // Size dynamic
 	var candidates []Provider
 	for _, p := range r.providers {
 		if p.Status() != StatusHealthy {

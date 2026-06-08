@@ -10,6 +10,8 @@ import (
 
 // MemoryEngine manages the orchestration of episodic and persistent storage.
 // It handles context retention, summarization, and retrieval-augmented generation (RAG) precursors.
+//
+//nolint:revive // Keep prefix
 type MemoryEngine struct {
 	storage      Storage
 	shortTermMem []llm.Message
@@ -26,6 +28,8 @@ func NewMemoryEngine(storage Storage, maxShortTerm int) *MemoryEngine {
 }
 
 // Record saves a message to both ephemeral short-term memory and persistent episodic storage.
+//
+//nolint:gocritic // by value
 func (e *MemoryEngine) Record(ctx context.Context, msg llm.Message) error {
 	e.shortTermMem = append(e.shortTermMem, msg)
 	if len(e.shortTermMem) > e.maxShortTerm {
@@ -57,9 +61,10 @@ func (e *MemoryEngine) Recall(ctx context.Context, query string) ([]llm.Message,
 
 	// 3. Inject long-term memories as system context "reminders"
 	for _, entry := range entries {
+		//nolint:makezero // existing capacity usage intended
 		combined = append(combined, llm.Message{
 			Role:    "system",
-			Content: fmt.Sprintf("[Memory Recall] %s", entry.Content),
+			Content: "[Memory Recall] " + entry.Content,
 		})
 	}
 

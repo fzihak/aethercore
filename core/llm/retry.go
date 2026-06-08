@@ -26,7 +26,7 @@ func (p *RetryingProvider) Metadata() ModelMetadata { return p.base.Metadata() }
 
 func (p *RetryingProvider) Execute(ctx context.Context, task string) (string, error) {
 	var lastErr error
-	for i := 0; i < p.maxRetries; i++ {
+	for i := 0; i < p.maxRetries; i++ { //nolint:intrange // pre Go 1.22
 		res, err := p.base.Execute(ctx, task)
 		if err == nil {
 			return res, nil
