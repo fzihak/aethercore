@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rsa"
@@ -187,7 +188,12 @@ func (m *AuthManager) SilentRefresh(oldToken string) (*JWTPayload, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://"+authDomain+"/refresh", strings.NewReader(`{"token":"`+oldToken+`"}`))
+	bodyBytes, err := json.Marshal(map[string]string{"token": oldToken})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://"+authDomain+"/refresh", bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, err
 	}
