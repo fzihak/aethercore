@@ -56,6 +56,8 @@ func (s *ZestDBStorage) Delete(ctx context.Context, id string) error {
 }
 
 // Search queries the in-memory persistence layer for entries matching the criteria.
+//
+//nolint:gocognit,gocritic,prealloc // Mock design
 func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
