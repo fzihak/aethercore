@@ -1,11 +1,15 @@
-with open('cmd/aether/auth.go', 'r') as f:
+with open('core/memory/zestdb_adapter.go', 'r') as f:
     content = f.read()
 
 content = content.replace(
-'''func startAuthServer(expectedState string) (*http.Server, chan string) {''',
-'''//nolint:gocritic // named return values are unnecessary for these two standard variables
-func startAuthServer(expectedState string) (*http.Server, chan string) {'''
+'''func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error) {''',
+'''func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error) {'''
 )
 
-with open('cmd/aether/auth.go', 'w') as f:
+import subprocess
+import os
+
+with open('core/memory/zestdb_adapter.go', 'w') as f:
     f.write(content)
+
+os.system('go fmt core/memory/zestdb_adapter.go')
