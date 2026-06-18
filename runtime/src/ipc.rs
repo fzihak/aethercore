@@ -68,6 +68,23 @@ impl Sandbox for SandboxService {
     }
 }
 
+struct UmaskGuard {
+    old_umask: libc::mode_t,
+}
+
+impl UmaskGuard {
+    fn set(new_umask: libc::mode_t) -> Self {
+        let old_umask = unsafe { libc::umask(new_umask) };
+        Self { old_umask }
+    }
+}
+
+impl Drop for UmaskGuard {
+    fn drop(&mut self) {
+        unsafe { libc::umask(self.old_umask) };
+    }
+}
+
 pub async fn start_uds_server<P: AsRef<Path>>(
     path: P,
     manifest: Arc<Manifest>,
@@ -81,14 +98,12 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     // Set process umask to 0o177 to ensure the socket is created with 0o600 permissions
     // This prevents a TOCTOU race condition where an attacker connects before permissions are applied
-    let old_umask = unsafe { libc::umask(0o177) };
+    let _umask_guard = UmaskGuard::set(0o177);
 
-    let uds = UnixListener::bind(p);
+    let uds = UnixListener::bind(p)?;
 
-    // Restore the old umask
-    unsafe { libc::umask(old_umask) };
-
-    let uds = uds?;
+    // Explicitly drop to restore the umask immediately after bind
+    drop(_umask_guard);
 
     let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?);
 
