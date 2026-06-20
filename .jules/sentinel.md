@@ -2,7 +2,3 @@
 **Vulnerability:** The Unix Domain Socket for IPC was created using default process umask permissions, making it vulnerable to unauthorized local connections. A naive fix using `set_permissions` immediately after `bind()` creates a Time-Of-Check to Time-Of-Use (TOCTOU) race condition window where an attacker can connect.
 **Learning:** In Rust (and POSIX generally), creating a Unix Domain Socket with specific permissions securely and atomically requires manipulating the process `umask` *before* calling `bind()`, as `bind()` applies the current umask to the newly created socket file.
 **Prevention:** Always temporarily set `umask(0o177)` before binding a UDS, and restore it immediately afterward. Ensure the `bind()` call is synchronous (not `.await`) to prevent async task cancellation from leaving the umask permanently modified.
-## 2025-02-27 - Panic-Safety RAII for Global State (umask)
-**Vulnerability:** A TOCTOU race condition was prevented by temporarily modifying the global `umask` when binding a Unix Domain Socket, but the state restoration was done manually instead of using an RAII guard. If a panic occurred during the bind, the global process state (`umask`) would remain permanently modified.
-**Learning:** In Rust, whenever global or shared state (like `libc::umask`) is modified temporarily, it must be guarded by a struct implementing `Drop` to guarantee restoration even across unwinding panics.
-**Prevention:** Always use the RAII pattern (a scope guard) for temporary mutations of global environment or system state.
