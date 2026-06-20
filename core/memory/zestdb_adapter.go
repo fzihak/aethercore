@@ -62,35 +62,12 @@ func (s *ZestDBStorage) Search(ctx context.Context, query string, opts SearchOpt
 
 	var results []MemoryEntry
 	for _, entry := range s.data {
-		// 1. Keyword match in content
-		match := query == "" || containsIgnoreCase(entry.Content, query)
-
-		// 2. Keyword match in metadata values
-		if !match && query != "" {
-			for _, val := range entry.Metadata {
-				if containsIgnoreCase(val, query) {
-					match = true
-					break
-				}
-			}
-		}
-
-		if !match {
+		if !matchesQuery(entry, query) {
 			continue
 		}
 
-		// 3. Optional tag filter (must match specific keys)
-		if len(opts.Tags) > 0 {
-			tagMatch := false
-			for _, tag := range opts.Tags {
-				if _, exists := entry.Metadata[tag]; exists {
-					tagMatch = true
-					break
-				}
-			}
-			if !tagMatch {
-				continue
-			}
+		if !matchesTags(entry, opts.Tags) {
+			continue
 		}
 
 		results = append(results, entry)
@@ -109,6 +86,33 @@ func (s *ZestDBStorage) Close() error {
 
 	s.data = nil
 	return nil
+}
+
+func matchesQuery(entry MemoryEntry, query string) bool {
+	if query == "" {
+		return true
+	}
+	if containsIgnoreCase(entry.Content, query) {
+		return true
+	}
+	for _, val := range entry.Metadata {
+		if containsIgnoreCase(val, query) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesTags(entry MemoryEntry, tags []string) bool {
+	if len(tags) == 0 {
+		return true
+	}
+	for _, tag := range tags {
+		if _, exists := entry.Metadata[tag]; exists {
+			return true
+		}
+	}
+	return false
 }
 
 func containsIgnoreCase(s, substr string) bool {
