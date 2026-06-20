@@ -68,6 +68,25 @@ impl Sandbox for SandboxService {
     }
 }
 
+struct UmaskGuard {
+    original: libc::mode_t,
+}
+
+impl UmaskGuard {
+    fn set(mode: libc::mode_t) -> Self {
+        let original = unsafe { libc::umask(mode) };
+        Self { original }
+    }
+}
+
+impl Drop for UmaskGuard {
+    fn drop(&mut self) {
+        unsafe {
+            libc::umask(self.original);
+        }
+    }
+}
+
 pub async fn start_uds_server<P: AsRef<Path>>(
     path: P,
     manifest: Arc<Manifest>,
@@ -81,12 +100,11 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     // Set process umask to 0o177 to ensure the socket is created with 0o600 permissions
     // This prevents a TOCTOU race condition where an attacker connects before permissions are applied
-    let old_umask = unsafe { libc::umask(0o177) };
+    let _umask_guard = UmaskGuard::set(0o177);
 
     let uds = UnixListener::bind(p);
 
-    // Restore the old umask
-    unsafe { libc::umask(old_umask) };
+    drop(_umask_guard);
 
     let uds = uds?;
 
