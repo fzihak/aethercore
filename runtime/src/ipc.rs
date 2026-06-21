@@ -9,6 +9,7 @@ use proto::{ToolRequest, ToolResponse};
 use std::os::unix::net::UnixListener;
 use std::path::Path;
 use tokio_stream::wrappers::UnixListenerStream;
+use tokio_stream::StreamExt;
 
 use crate::manifest::Manifest;
 use crate::sandbox::CgroupGuard;
@@ -90,7 +91,29 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     let uds = uds?;
 
-    let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?);
+    let expected_kernel_uid = unsafe { libc::getuid() };
+
+    let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?)
+        .filter_map(move |res| {
+            match res {
+                Ok(stream) => {
+                    if let Ok(cred) = stream.peer_cred() {
+                        if cred.uid() == expected_kernel_uid {
+                            Some(Ok(stream))
+                        } else {
+                            eprintln!(
+                                r#"{{"level":"WARN","msg":"peer_uid_rejected","peer_uid":{},"expected_uid":{}}}"#,
+                                cred.uid(), expected_kernel_uid
+                            );
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                }
+                Err(e) => Some(Err(e)),
+            }
+        });
 
     let service = SandboxService {
         manifest,
