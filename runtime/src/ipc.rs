@@ -9,6 +9,7 @@ use proto::{ToolRequest, ToolResponse};
 use std::os::unix::net::UnixListener;
 use std::path::Path;
 use tokio_stream::wrappers::UnixListenerStream;
+use tokio_stream::StreamExt;
 
 use crate::manifest::Manifest;
 use crate::sandbox::CgroupGuard;
@@ -92,6 +93,32 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?);
 
+    let expected_uid = unsafe { libc::getuid() };
+    let filtered_stream = stream.filter_map(move |item| {
+        match item {
+            Ok(stream) => {
+                match stream.peer_cred() {
+                    Ok(cred) if cred.uid() == expected_uid => Some(Ok(stream)),
+                    Ok(cred) => {
+                        eprintln!(
+                            r#"{{"level":"ERROR","msg":"peer_uid_rejected","expected":{},"actual":{}}}"#,
+                            expected_uid, cred.uid()
+                        );
+                        None
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            r#"{{"level":"ERROR","msg":"peer_cred_error","error":"{}"}}"#,
+                            e
+                        );
+                        None
+                    }
+                }
+            }
+            Err(e) => Some(Err(e)),
+        }
+    });
+
     let service = SandboxService {
         manifest,
         pubkey,
@@ -105,7 +132,7 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     Server::builder()
         .add_service(SandboxServer::new(service))
-        .serve_with_incoming(stream)
+        .serve_with_incoming(filtered_stream)
         .await?;
 
     Ok(())
