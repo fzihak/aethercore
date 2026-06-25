@@ -111,7 +111,8 @@ func (v *Verifier) Verify(token string) (*JWTPayload, error) {
 	}
 
 	var payload JWTPayload
-	if err := json.Unmarshal(payloadRaw, &payload); err != nil {
+	err = json.Unmarshal(payloadRaw, &payload)
+	if err != nil {
 		return nil, ErrInvalidToken
 	}
 
