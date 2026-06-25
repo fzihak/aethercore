@@ -111,7 +111,8 @@ func (v *Verifier) Verify(token string) (*JWTPayload, error) {
 	}
 
 	var payload JWTPayload
-	if err := json.Unmarshal(payloadRaw, &payload); err != nil {
+	err = json.Unmarshal(payloadRaw, &payload)
+	if err != nil {
 		return nil, ErrInvalidToken
 	}
 
@@ -123,16 +124,18 @@ func (v *Verifier) Verify(token string) (*JWTPayload, error) {
 		return nil, ErrInvalidIssuer
 	}
 
-	if v.publicKey != nil {
-		sig, err := base64.RawURLEncoding.DecodeString(parts[2])
-		if err != nil {
-			return nil, ErrInvalidToken
-		}
+	if v.publicKey == nil {
+		return nil, ErrSignatureInvalid
+	}
 
-		hash := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
-		if err := rsa.VerifyPKCS1v15(v.publicKey, crypto.SHA256, hash[:], sig); err != nil {
-			return nil, ErrSignatureInvalid
-		}
+	sig, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return nil, ErrInvalidToken
+	}
+
+	hash := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
+	if err := rsa.VerifyPKCS1v15(v.publicKey, crypto.SHA256, hash[:], sig); err != nil {
+		return nil, ErrSignatureInvalid
 	}
 
 	return &payload, nil
