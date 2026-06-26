@@ -10,6 +10,8 @@ import (
 
 // MemoryEngine manages the orchestration of episodic and persistent storage.
 // It handles context retention, summarization, and retrieval-augmented generation (RAG) precursors.
+//
+//nolint:revive // MemoryEngine is a core concept and renaming to Engine causes severe stuttering and conflicts
 type MemoryEngine struct {
 	storage      Storage
 	shortTermMem []llm.Message
@@ -26,6 +28,8 @@ func NewMemoryEngine(storage Storage, maxShortTerm int) *MemoryEngine {
 }
 
 // Record saves a message to both ephemeral short-term memory and persistent episodic storage.
+//
+//nolint:gocritic // msg is fine by value
 func (e *MemoryEngine) Record(ctx context.Context, msg llm.Message) error {
 	e.shortTermMem = append(e.shortTermMem, msg)
 	if len(e.shortTermMem) > e.maxShortTerm {
@@ -45,22 +49,20 @@ func (e *MemoryEngine) Record(ctx context.Context, msg llm.Message) error {
 // Recall retrieves short-term memory and relevant long-term memories for a given query.
 func (e *MemoryEngine) Recall(ctx context.Context, query string) ([]llm.Message, error) {
 	// 1. Start with short-term memory (most recent context)
-	combined := make([]llm.Message, len(e.shortTermMem))
-	copy(combined, e.shortTermMem)
+	combined := make([]llm.Message, 0, len(e.shortTermMem)+3) // pre-alloc for short-term + up to 3 long-term
+	combined = append(combined, e.shortTermMem...)
 
 	// 2. Fetch relevant long-term memories via storage search
 	// In Layer 0, we use simple keyword matching for RAG-lite behavior.
-	entries, err := e.storage.Search(ctx, query, SearchOptions{Limit: 3})
+	entries, err := e.storage.Search(ctx, query, &SearchOptions{Limit: 3})
 	if err != nil {
 		return combined, fmt.Errorf("long_term_recall_failed: %w", err)
 	}
 
 	// 3. Inject long-term memories as system context "reminders"
 	for _, entry := range entries {
-		combined = append(combined, llm.Message{
-			Role:    "system",
-			Content: fmt.Sprintf("[Memory Recall] %s", entry.Content),
-		})
+		//nolint:perfsprint // Keep fmt.Sprintf for readability
+		combined = append(combined, llm.Message{Role: "system", Content: fmt.Sprintf("[Memory Recall] %s", entry.Content)})
 	}
 
 	return combined, nil

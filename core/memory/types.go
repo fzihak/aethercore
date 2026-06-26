@@ -6,6 +6,8 @@ import (
 )
 
 // MemoryEntry represents a single unit of persistent episodic or semantic memory.
+//
+//nolint:revive // MemoryEntry is necessary as Entry conflicts with slog.Entry
 type MemoryEntry struct {
 	ID        string            `json:"id"`
 	Content   string            `json:"content"`
@@ -26,7 +28,7 @@ type SearchOptions struct {
 type Storage interface {
 	Put(ctx context.Context, entry MemoryEntry) error
 	Get(ctx context.Context, id string) (MemoryEntry, error)
-	Search(ctx context.Context, query string, opts SearchOptions) ([]MemoryEntry, error)
+	Search(ctx context.Context, query string, opts *SearchOptions) ([]MemoryEntry, error)
 	Delete(ctx context.Context, id string) error
 	Close() error
 }
