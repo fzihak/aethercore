@@ -92,6 +92,33 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?);
 
+    let expected_kernel_uid = unsafe { libc::getuid() };
+    use tokio_stream::StreamExt;
+    let stream = stream.filter_map(move |result| {
+        match result {
+            Ok(s) => {
+                match s.peer_cred() {
+                    Ok(cred) if cred.uid() == expected_kernel_uid => Some(Ok(s)),
+                    Ok(cred) => {
+                        eprintln!(
+                            r#"{{"level":"ERROR","msg":"peer_uid_rejected","uid":{}}}"#,
+                            cred.uid()
+                        );
+                        None
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            r#"{{"level":"ERROR","msg":"peer_cred_error","error":"{}"}}"#,
+                            e
+                        );
+                        None
+                    }
+                }
+            }
+            Err(e) => Some(Err(e)),
+        }
+    });
+
     let service = SandboxService {
         manifest,
         pubkey,

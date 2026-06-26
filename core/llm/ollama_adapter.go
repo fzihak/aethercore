@@ -170,7 +170,7 @@ func toOllamaToolCalls(toolCalls []ToolCall) []ollamaToolCall {
 	if len(toolCalls) == 0 {
 		return nil
 	}
-	var ollamaCalls []ollamaToolCall
+	ollamaCalls := make([]ollamaToolCall, 0)
 	for _, tc := range toolCalls {
 		args := json.RawMessage(tc.Arguments)
 		if !json.Valid(args) {
@@ -189,6 +189,8 @@ func toOllamaToolCalls(toolCalls []ToolCall) []ollamaToolCall {
 // toOllamaMessage converts an engine-internal Message to the Ollama wire format.
 // Role "tool" (ToolResults) is expanded: one Ollama message per tool result,
 // using role "tool" and the content string.
+//
+//nolint:gocritic // m is small enough for this short-lived call
 func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage {
 	switch m.Role {
 	case "assistant":
@@ -205,7 +207,7 @@ func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage {
 			if len(m.ToolResults) == 1 {
 				content = m.ToolResults[0].Content
 			} else {
-				raw, _ := json.Marshal(m.ToolResults)
+				raw, _ := json.Marshal(m.ToolResults) //nolint:errchkjson,musttag // tool results are safely structured
 				content = string(raw)
 			}
 		}
@@ -214,6 +216,8 @@ func (a *OllamaAdapter) toOllamaMessage(m Message) ollamaMessage {
 }
 
 // fromOllamaResponse maps an Ollama API response back to the engine-internal LLMResponse.
+//
+//nolint:gocritic // r is small enough for this short-lived call
 func (a *OllamaAdapter) fromOllamaResponse(r ollamaChatResponse) LLMResponse {
 	res := LLMResponse{
 		Content: r.Message.Content,
@@ -239,6 +243,8 @@ func (a *OllamaAdapter) fromOllamaResponse(r ollamaChatResponse) LLMResponse {
 }
 
 // toOllamaTool converts an engine-internal ToolManifest to the Ollama wire format.
+//
+//nolint:gocritic // t is small enough for this short-lived call
 func toOllamaTool(t ToolManifest) ollamaTool {
 	params := t.Parameters
 	if len(params) == 0 || !json.Valid(params) {

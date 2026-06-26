@@ -15,6 +15,8 @@ const (
 )
 
 // LLMAdapter defines the contract for any LLM provider used by the kernel.
+//
+//nolint:revive // This interface needs to be heavily referenced externally as LLMAdapter to match LLM types
 type LLMAdapter interface {
 	Generate(ctx context.Context, systemPrompt, userInput string) (string, error)
 	GenerateWithTools(ctx context.Context, messages []Message, tools []ToolManifest) (LLMResponse, error)
@@ -22,6 +24,8 @@ type LLMAdapter interface {
 }
 
 // LLMResponse encapsulates the response from the LLM, including tool invocations if any.
+//
+//nolint:revive // This struct needs to be referenced as LLMResponse to disambiguate from HTTP responses
 type LLMResponse struct {
 	Content    string
 	ToolCalls  []ToolCall

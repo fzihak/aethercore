@@ -14,7 +14,7 @@ func TestZestDBStorage_Search(t *testing.T) {
 	_ = s.Put(ctx, MemoryEntry{ID: "3", Content: "carrot cake", Metadata: map[string]string{"tag": "food"}})
 
 	// 1. Keyword search
-	res, err := s.Search(ctx, "banana", SearchOptions{})
+	res, err := s.Search(ctx, "banana", &SearchOptions{})
 	if err != nil {
 		t.Fatalf("search failed: %v", err)
 	}
@@ -23,7 +23,7 @@ func TestZestDBStorage_Search(t *testing.T) {
 	}
 
 	// 2. Limit check
-	res, _ = s.Search(ctx, "food", SearchOptions{Limit: 2})
+	res, _ = s.Search(ctx, "food", &SearchOptions{Limit: 2})
 	if len(res) != 2 {
 		t.Errorf("expected 2 results due to limit, got %d", len(res))
 	}
