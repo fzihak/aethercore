@@ -89,8 +89,32 @@ pub async fn start_uds_server<P: AsRef<Path>>(
     unsafe { libc::umask(old_umask) };
 
     let uds = uds?;
+    let expected_uid = unsafe { libc::geteuid() };
 
     let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?);
+
+    // Memory note: In the Rust sandbox, verifying SO_PEERCRED for Tonic gRPC over Unix Domain Sockets
+    // requires manually filtering the incoming UnixListenerStream (e.g., using tokio_stream::StreamExt::filter_map
+    // and stream.peer_cred()) before passing it to serve_with_incoming.
+    use tokio_stream::StreamExt;
+    let auth_stream = stream.filter_map(move |item| {
+        match item {
+            Ok(stream) => {
+                match stream.peer_cred() {
+                    Ok(cred) if cred.uid() == expected_uid => Some(Ok(stream)),
+                    Ok(cred) => {
+                        eprintln!(r#"{{"level":"ERROR","msg":"peer_uid_rejected","peer_uid":{},"expected_uid":{}}}"#, cred.uid(), expected_uid);
+                        None
+                    }
+                    Err(e) => {
+                        eprintln!(r#"{{"level":"ERROR","msg":"peer_cred_error","error":"{}"}}"#, e);
+                        None
+                    }
+                }
+            }
+            Err(e) => Some(Err(e)),
+        }
+    });
 
     let service = SandboxService {
         manifest,
@@ -105,7 +129,7 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     Server::builder()
         .add_service(SandboxServer::new(service))
-        .serve_with_incoming(stream)
+        .serve_with_incoming(auth_stream)
         .await?;
 
     Ok(())
