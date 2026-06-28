@@ -32,11 +32,14 @@ impl Sandbox for SandboxService {
         let req = request.into_inner();
 
         // 1. Locate tool in manifest
-        let tool = self.manifest
+        let tool = self
+            .manifest
             .tools
             .iter()
             .find(|t| t.name == req.tool_name)
-            .ok_or_else(|| Status::not_found(format!("tool {} not registered in manifest", req.tool_name)))?;
+            .ok_or_else(|| {
+                Status::not_found(format!("tool {} not registered in manifest", req.tool_name))
+            })?;
 
         // 2. Cryptographic Verification
         if let Err(e) = tool.verify(&self.pubkey) {
@@ -49,14 +52,14 @@ impl Sandbox for SandboxService {
 
         // 3. Apply enforcement cgroups per request
         let memory_limit_bytes = tool.capabilities.max_memory_mb * 1024 * 1024;
-        let _guard = CgroupGuard::apply(&tool.name, memory_limit_bytes).map_err(|e| {
-            Status::internal(format!("cgroup_apply_failed: {}", e))
-        })?;
+        let _guard = CgroupGuard::apply(&tool.name, memory_limit_bytes)
+            .map_err(|e| Status::internal(format!("cgroup_apply_failed: {}", e)))?;
 
         // 4. Execute inside WASM (currently without WASI for Day 10 stableness, assuming basic fuel)
-        let output = self.wasm_engine.execute(&[], &req.payload_json, &tool.capabilities).unwrap_or_else(|e| {
-            format!(r#"{{"error": "{}"}}"#, e)
-        });
+        let output = self
+            .wasm_engine
+            .execute(&[], &req.payload_json, &tool.capabilities)
+            .unwrap_or_else(|e| format!(r#"{{"error": "{}"}}"#, e));
 
         let res = ToolResponse {
             success: true,
@@ -65,6 +68,23 @@ impl Sandbox for SandboxService {
         };
 
         Ok(Response::new(res))
+    }
+}
+
+struct UmaskGuard {
+    old_umask: libc::mode_t,
+}
+
+impl UmaskGuard {
+    fn new(new_umask: libc::mode_t) -> Self {
+        let old_umask = unsafe { libc::umask(new_umask) };
+        Self { old_umask }
+    }
+}
+
+impl Drop for UmaskGuard {
+    fn drop(&mut self) {
+        unsafe { libc::umask(self.old_umask) };
     }
 }
 
@@ -81,16 +101,34 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     // Set process umask to 0o177 to ensure the socket is created with 0o600 permissions
     // This prevents a TOCTOU race condition where an attacker connects before permissions are applied
-    let old_umask = unsafe { libc::umask(0o177) };
+    let _guard = UmaskGuard::new(0o177);
 
     let uds = UnixListener::bind(p);
 
     // Restore the old umask
-    unsafe { libc::umask(old_umask) };
+    drop(_guard);
 
     let uds = uds?;
 
-    let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?);
+    use tokio_stream::StreamExt;
+    let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?)
+        .filter_map(|res| {
+            match res {
+                Ok(stream) => match stream.peer_cred() {
+                    Ok(cred) => {
+                        let expected_uid = unsafe { libc::geteuid() };
+                        if cred.uid() == expected_uid {
+                            Some(Ok(stream))
+                        } else {
+                            eprintln!(r#"{{"level":"ERROR","msg":"rejected_unauthorized_ipc_connection","uid":{}}}"#, cred.uid());
+                            None
+                        }
+                    }
+                    Err(_) => None,
+                },
+                Err(e) => Some(Err(e)),
+            }
+        });
 
     let service = SandboxService {
         manifest,
