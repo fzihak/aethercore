@@ -20,7 +20,7 @@ func NewCostRouter(providers []Provider, minCapability int) *CostRouter {
 }
 
 func (r *CostRouter) Select(ctx context.Context, task string) (Provider, error) {
-	var candidates []Provider
+	candidates := make([]Provider, 0, len(r.providers))
 	for _, p := range r.providers {
 		if p.Status() != StatusHealthy {
 			continue

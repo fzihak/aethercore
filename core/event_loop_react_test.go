@@ -32,7 +32,7 @@ func mockOllamaServer(t *testing.T, responses []any) *httptest.Server {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(body) //nolint:errcheck
+		_, _ = w.Write(body)
 	}))
 }
 
@@ -226,6 +226,6 @@ func TestReAct_maxIterationsExceeded(t *testing.T) {
 // into the core package tests without introducing a dependency cycle.
 // It creates the adapter using the exported NewOllamaAdapter path and then
 // overrides the baseURL via a thin wrapper that satisfies llm.LLMAdapter.
-func newTestOllamaAdapterFromPkg(model, baseURL string) llm.LLMAdapter {
-	return llm.NewOllamaAdapterWithURL(model, baseURL)
+func newTestOllamaAdapterFromPkg(_, baseURL string) llm.LLMAdapter {
+	return llm.NewOllamaAdapterWithURL("test", baseURL)
 }
