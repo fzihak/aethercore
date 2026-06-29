@@ -81,12 +81,22 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     // Set process umask to 0o177 to ensure the socket is created with 0o600 permissions
     // This prevents a TOCTOU race condition where an attacker connects before permissions are applied
-    let old_umask = unsafe { libc::umask(0o177) };
+    struct UmaskGuard(libc::mode_t);
+    impl UmaskGuard {
+        fn new(mask: libc::mode_t) -> Self {
+            Self(unsafe { libc::umask(mask) })
+        }
+    }
+    impl Drop for UmaskGuard {
+        fn drop(&mut self) {
+            unsafe { libc::umask(self.0) };
+        }
+    }
 
-    let uds = UnixListener::bind(p);
-
-    // Restore the old umask
-    unsafe { libc::umask(old_umask) };
+    let uds = {
+        let _guard = UmaskGuard::new(0o177);
+        UnixListener::bind(p)
+    };
 
     let uds = uds?;
 
