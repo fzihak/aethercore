@@ -7,3 +7,8 @@
 **Vulnerability:** The process `umask` was temporarily altered to create a Unix Domain Socket with specific permissions but was restored manually without RAII, creating a risk that if `UnixListener::bind()` panics, the process permanently retains the restrictive `umask(0o177)`, affecting future file creation permissions for the entire application.
 **Learning:** Manual global state manipulation in Rust is not panic-safe.
 **Prevention:** Use an RAII guard (struct implementing `Drop`) to ensure the global state (like `umask`) is unconditionally restored when the scope ends, protecting against panics.
+
+## 2024-06-30 - Fix IPC SO_PEERCRED Vulnerability
+**Vulnerability:** The Unix Domain Socket connection between the Go kernel and the Rust sandbox failed to enforce identity verification using the `SO_PEERCRED` socket option. Any local user could connect to the IPC socket, bypass authentication, and submit tool execution requests to the sandbox, leading to local privilege escalation.
+**Learning:** Enforcing connection authentication using socket properties (like `SO_PEERCRED`) on a Tonic gRPC server acting over UDS requires intervening before handing the listener to `serve_with_incoming()`.
+**Prevention:** Filter the incoming `UnixListenerStream` via `.filter_map()` to extract peer credentials using `stream.peer_cred()` on every connection attempt. Only yield connections that match the expected user ID `libc::geteuid()` to prevent unauthorized local access.

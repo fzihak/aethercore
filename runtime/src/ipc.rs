@@ -100,7 +100,34 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     let uds = uds?;
 
+    let expected_uid = unsafe { libc::geteuid() };
+
+    use tokio_stream::StreamExt;
     let stream = UnixListenerStream::new(tokio::net::UnixListener::from_std(uds)?);
+    let filtered_stream = stream.filter_map(move |item| {
+        match item {
+            Ok(stream) => {
+                match stream.peer_cred() {
+                    Ok(cred) if cred.uid() == expected_uid => Some(Ok(stream)),
+                    Ok(cred) => {
+                        eprintln!(
+                            r#"{{"level":"ERROR","msg":"peer_uid_rejected","expected":{},"actual":{}}}"#,
+                            expected_uid, cred.uid()
+                        );
+                        None
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            r#"{{"level":"ERROR","msg":"peer_cred_error","error":"{}"}}"#,
+                            e
+                        );
+                        None
+                    }
+                }
+            }
+            Err(e) => Some(Err(e)),
+        }
+    });
 
     let service = SandboxService {
         manifest,
@@ -115,7 +142,7 @@ pub async fn start_uds_server<P: AsRef<Path>>(
 
     Server::builder()
         .add_service(SandboxServer::new(service))
-        .serve_with_incoming(stream)
+        .serve_with_incoming(filtered_stream)
         .await?;
 
     Ok(())
