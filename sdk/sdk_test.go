@@ -227,6 +227,100 @@ func TestRegistry_concurrentLoads_raceDetector(t *testing.T) {
 	}
 }
 
+func TestLoad_concurrentMapMutations(t *testing.T) {
+	r := sdk.NewModuleRegistry()
+	const n = 50
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+
+	// Add concurrent writers and readers
+	wg.Add(3)
+
+	// Goroutine 1: Continuous loads
+	go func() {
+		defer wg.Done()
+		<-start
+		for i := range n {
+			name := fmt.Sprintf("mod-%d", i)
+			_ = r.Load(newFake(name), sdk.NewModuleContext(name))
+		}
+	}()
+
+	// Goroutine 2: Continuous unloads
+	go func() {
+		defer wg.Done()
+		<-start
+		for i := range n {
+			name := fmt.Sprintf("mod-%d", i)
+			_ = r.Unload(name)
+		}
+	}()
+
+	// Goroutine 3: Continuous gets and len checks
+	go func() {
+		defer wg.Done()
+		<-start
+		for i := range n {
+			name := fmt.Sprintf("mod-%d", i)
+			_, _ = r.Get(name)
+			_ = r.Len()
+			_ = r.Manifests()
+		}
+	}()
+
+	close(start) // unleash the goroutines
+	wg.Wait()
+}
+
+func TestLoad_concurrentSameName(t *testing.T) {
+	r := sdk.NewModuleRegistry()
+	const n = 50
+	var wg sync.WaitGroup
+
+	// Channels to collect results
+	errs := make(chan error, n)
+
+	// Wait on a barrier to start them as simultaneously as possible
+	start := make(chan struct{})
+
+	wg.Add(n)
+	for range n {
+		go func() {
+			defer wg.Done()
+			<-start
+			errs <- r.Load(newFake("delta"), sdk.NewModuleContext("delta"))
+		}()
+	}
+
+	close(start) // release the barrier
+	wg.Wait()
+	close(errs)
+
+	var successCount int
+	var errAlreadyLoadedCount int
+
+	for err := range errs {
+		switch {
+		case err == nil:
+			successCount++
+		case errors.Is(err, sdk.ErrModuleAlreadyLoaded):
+			errAlreadyLoadedCount++
+		default:
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+
+	if successCount != 1 {
+		t.Fatalf("expected exactly 1 success, got %d", successCount)
+	}
+	if errAlreadyLoadedCount != n-1 {
+		t.Fatalf("expected exactly %d already loaded errors, got %d", n-1, errAlreadyLoadedCount)
+	}
+	if r.Len() != 1 {
+		t.Fatalf("expected Len=1 after concurrent loads with same name, got %d", r.Len())
+	}
+}
+
 // ---- ModuleContext / tool registry -------------------------------------
 
 func TestModuleContext_registerTool(t *testing.T) {
