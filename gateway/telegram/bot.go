@@ -25,6 +25,7 @@ type Bot struct {
 	token    string
 	registry *sdk.ModuleRegistry
 	log      *slog.Logger
+	client   *Client // optional override for tests
 }
 
 // NewBot constructs a Bot for the given Telegram bot token and module registry.
@@ -46,7 +47,10 @@ func (b *Bot) Start(ctx context.Context) error {
 		return errors.New("telegram: bot token must not be empty")
 	}
 
-	client := NewClient(b.token)
+	client := b.client
+	if client == nil {
+		client = NewClient(b.token)
+	}
 
 	// Verify the token before entering the polling loop.
 	me, err := client.GetMe(ctx)
