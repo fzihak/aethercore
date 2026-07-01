@@ -25,6 +25,7 @@ type Gateway struct {
 	intents int
 	handler EventHandler
 	log     *slog.Logger
+	dial    func(string) (*wsConn, error)
 }
 
 // NewGateway constructs a Gateway for the given bot token, intent bitfield,
@@ -35,8 +36,14 @@ func NewGateway(token string, intents int, handler EventHandler, log *slog.Logge
 		intents: intents,
 		handler: handler,
 		log:     log,
+		dial:    dialWS,
 	}
 }
+
+var (
+	gatewayBackoffBase = 2 * time.Second
+	gatewayBackoffMax  = 60 * time.Second
+)
 
 // Run connects to the Discord Gateway at gatewayURL and processes events until
 // ctx is cancelled. It reconnects with exponential backoff on failures.
@@ -44,11 +51,7 @@ func NewGateway(token string, intents int, handler EventHandler, log *slog.Logge
 // gatewayURL should be a wss:// URL as returned by Client.GetGatewayURL; the
 // required query string (?v=10&encoding=json) is appended internally.
 func (g *Gateway) Run(ctx context.Context, gatewayURL string) {
-	const (
-		backoffBase = 2 * time.Second
-		backoffMax  = 60 * time.Second
-	)
-	backoff := backoffBase
+	backoff := gatewayBackoffBase
 
 	for {
 		select {
@@ -73,7 +76,7 @@ func (g *Gateway) Run(ctx context.Context, gatewayURL string) {
 		case <-ctx.Done():
 			return
 		}
-		if backoff < backoffMax {
+		if backoff < gatewayBackoffMax {
 			backoff *= 2
 		}
 	}
@@ -83,7 +86,7 @@ func (g *Gateway) Run(ctx context.Context, gatewayURL string) {
 // It performs: dial → Hello → Identify → event loop + heartbeat.
 // Returns nil on clean ctx cancellation, non-nil on session failure.
 func (g *Gateway) connect(ctx context.Context, wsURL string) error {
-	ws, err := dialWS(wsURL)
+	ws, err := g.dial(wsURL)
 	if err != nil {
 		return fmt.Errorf("discord: gateway dial: %w", err)
 	}
