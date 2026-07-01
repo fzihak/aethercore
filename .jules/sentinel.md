@@ -7,3 +7,8 @@
 **Vulnerability:** The process `umask` was temporarily altered to create a Unix Domain Socket with specific permissions but was restored manually without RAII, creating a risk that if `UnixListener::bind()` panics, the process permanently retains the restrictive `umask(0o177)`, affecting future file creation permissions for the entire application.
 **Learning:** Manual global state manipulation in Rust is not panic-safe.
 **Prevention:** Use an RAII guard (struct implementing `Drop`) to ensure the global state (like `umask`) is unconditionally restored when the scope ends, protecting against panics.
+
+## 2024-07-01 - Add Peer Credential Verification to UDS Server
+**Vulnerability:** The Unix Domain Socket was protected by file permissions (`umask(0o177)`), but did not verify the caller's identity once a connection was established. This relied solely on the filesystem for access control, which is prone to race conditions or misconfigurations.
+**Learning:** For a robust defense-in-depth approach, Tonic gRPC servers over UDS should explicitly verify the `SO_PEERCRED` to ensure the connecting process matches the expected `uid`.
+**Prevention:** Always wrap `UnixListenerStream` with a filter (`stream.peer_cred().uid() == libc::geteuid()`) before passing it to `serve_with_incoming()`.
